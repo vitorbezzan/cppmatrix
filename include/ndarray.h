@@ -15,8 +15,15 @@ namespace cppmatrix{
 
     public:
 
-        // Friends will be friends
-        friend class NDArray<T>;
+        template<typename U>
+            requires std::is_floating_point_v<U>
+        friend class NDArray;
+
+        template<typename T1, typename T2>
+        friend NDArray<T1>& operator+=(NDArray<T1> &left, const NDArray<T2> &right);
+
+        template<typename T1, typename T2>
+        friend NDArray<T1>& operator-=(NDArray<T1> &left, const NDArray<T2> &right);
 
         NDArray() = default;
 
@@ -54,7 +61,8 @@ namespace cppmatrix{
         }
 
         inline uint64_t N() const{
-            return std::accumulate(this->_shape, this->_shape + this->_ndim, 1, std::multiplies());
+            uint64_t n = std::accumulate(this->_shape, this->_shape + this->_ndim, 1, std::multiplies());
+            return n;
         }
 
         inline uint64_t ndim() const{
@@ -85,7 +93,7 @@ namespace cppmatrix{
 
         template<typename U>
         inline bool check_sizes(const NDArray<U> &right) const{
-            if((this->_ndim != right._ndim) || (!std::equal(this->_shape, this->_shape + this->_ndim, right._shape)))
+            if((this->_ndim != right._ndim) || (!std::equal(this->_shape, this->_shape + this->_ndim, right.shape())))
                 return false;
 
             return true;
@@ -149,6 +157,41 @@ namespace cppmatrix{
 
     };
 
+    template<typename T1, typename T2>
+    NDArray<T1>& operator+=(NDArray<T1> &left, const NDArray<T2> &right){
+        if(left.check_sizes(right)){
+            std::transform(left._data, left._data + left.N(), right._data, left._data, std::plus<T1>());
+            return left;
+        }
+
+        throw std::runtime_error("Size mismatch for operator+=");
+    }
+
+    template<typename T1, typename T2>
+    NDArray<T1> operator+(const NDArray<T1> &left, const NDArray<T2> &right){
+        auto result = NDArray(left);
+        operator+=(result, right);
+
+        return result;
+    }
+
+    template<typename T1, typename T2>
+    NDArray<T1>& operator-=(NDArray<T1> &left, const NDArray<T2> &right){
+        if(left.check_sizes(right)){
+            std::transform(left._data, left._data + left.N(), right._data, left._data, std::minus<T1>());
+            return left;
+        }
+
+        throw std::runtime_error("Size mismatch for operator-=");
+    }
+
+    template<typename T1, typename T2>
+    NDArray<T1> operator-(const NDArray<T1> &left, const NDArray<T2> &right){
+        auto result = NDArray(left);
+        operator-=(result, right);
+
+        return result;
+    }
 
 }
 
