@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include "tests/ndarray.cpp"
+#include "tests/matrix.cpp"
 
 
 int main(int argc, char **argv) {
