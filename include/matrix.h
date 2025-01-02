@@ -42,6 +42,17 @@ public:
         this->operator()(row, col) = f(row, col);
   }
 
+  Matrix(const uint64_t &rows, const uint64_t &cols,
+         const std::function<T(const uint64_t &, const uint64_t &)> &f)
+      : NDArray<T>({rows, cols}) {
+    this->_rows = rows;
+    this->_cols = cols;
+
+    for (int row = 0; row < this->_rows; row++)
+      for (int col = 0; col < this->_cols; col++)
+        this->operator()(row, col) = f(row, col);
+  }
+
   Matrix(const Matrix<T> &M) : NDArray<T>(M) {
     this->_rows = M._rows;
     this->_cols = M._cols;
@@ -161,9 +172,8 @@ Matrix<T1> naive_multiply(Matrix<T1> &left, Matrix<T2> &right) {
 
 template <typename T1, typename T2>
 Matrix<T1> operator*(Matrix<T1> &left, Matrix<T2> &right) {
-    return naive_multiply(left, right);
+  return naive_multiply(left, right);
 }
-
 
 // Overloaded implementations for specific types
 // float
@@ -176,7 +186,7 @@ Matrix<float> operator*(Matrix<float> &left, Matrix<float> &right) {
   return C;
 }
 
-//double
+// double
 Matrix<double> operator*(Matrix<double> &left, Matrix<double> &right) {
   Matrix<double> C = _check_compat(left, right);
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, left.rows(),
@@ -186,8 +196,21 @@ Matrix<double> operator*(Matrix<double> &left, Matrix<double> &right) {
   return C;
 }
 
-// Worth saying that conversion between Matrix base types is not considered here to
-// avoid performance penalties in conversions.
+// Worth saying that conversion between Matrix base types is not considered here
+// to avoid performance penalties in conversions.
+
+// Some alias typing definitions
+template <typename T> class ColumnVector : Matrix<T> {
+  ColumnVector(const uint64_t &N) : Matrix<T>(N, 1) {}
+};
+
+template <typename T> class RowVector : Matrix<T> {
+  RowVector(const uint64_t &N) : Matrix<T>(1, N) {}
+};
+
+template <typename T> class Vector : Matrix<T> {
+  Vector(const uint64_t &N) : Matrix<T>(N, 1) {}
+};
 
 } // namespace cppmatrix
 

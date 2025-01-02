@@ -1,6 +1,6 @@
 /* tests root for Matrix */
 #include "../include/matrix.h"
-#include "../include/matrix_helpers.h"
+#include "../include/fillers.h"
 #include <cmath>
 #include <gtest/gtest.h>
 
@@ -97,8 +97,10 @@ TEST(Matrix, multiply_scalar_matrix) {
 }
 
 TEST(Matrix, matrix_multiply) {
-  auto M1 = cppmatrix::Matrix<float>(10, 10, cppmatrix::normal);
-  auto M2 = cppmatrix::Matrix<float>(10, 10, cppmatrix::normal);
+  auto g = cppmatrix::NormalFill<double>(42, 0.0, 1.0);
+
+  auto M1 = cppmatrix::Matrix<double>(10, 10, g.filler());
+  auto M2 = cppmatrix::Matrix<double>(10, 10, g.filler());
 
   auto result_naive = cppmatrix::naive_multiply(M1, M2);
   auto result_cblas = M1 * M2;
