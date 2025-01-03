@@ -5,5 +5,6 @@
 #include "function.h"
 #include "matrix.h"
 #include "ndarray.h"
+#include "newton.h"
 
 #endif // CPPMATRIX_H

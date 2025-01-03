@@ -4,6 +4,9 @@
 #include "ndarray.h"
 #include <algorithm>
 #include <cblas.h>
+#include <cmath>
+#include <functional>
+#include <numeric>
 #include <stdexcept>
 #include <type_traits>
 
@@ -101,10 +104,56 @@ Matrix<T1> &operator+=(Matrix<T1> &left, const Matrix<T2> &right) {
   return left;
 }
 
+template <typename T1>
+Matrix<T1> &operator+=(Matrix<T1> &left, const float &right) {
+  std::transform(left.data(), left.data() + left.N(), left.data(),
+                 [right](float element) { return element + right; });
+  return left;
+}
+
+template <typename T1>
+Matrix<T1> &operator+=(Matrix<T1> &left, const double &right) {
+  std::transform(left.data(), left.data() + left.N(), left.data(),
+                 [right](double element) { return element + right; });
+  return left;
+}
+
 template <typename T1, typename T2>
 Matrix<T1> operator+(const Matrix<T1> &left, const Matrix<T2> &right) {
   auto result = Matrix(left);
   operator+=(result, right);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator+(Matrix<T1> &left, const float &right) {
+  auto result = Matrix(left);
+  operator+=(result, right);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator+(Matrix<T1> &left, const double &right) {
+  auto result = Matrix(left);
+  operator+=(result, right);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator+(const float &left, Matrix<T1> &right) {
+  auto result = Matrix(right);
+  operator+=(result, left);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator+(const double &left, Matrix<T1> &right) {
+  auto result = Matrix(right);
+  operator+=(result, left);
 
   return result;
 }
@@ -121,10 +170,56 @@ Matrix<T1> &operator-=(Matrix<T1> &left, const Matrix<T2> &right) {
   return left;
 }
 
+template <typename T1>
+Matrix<T1> &operator-=(Matrix<T1> &left, const float &right) {
+  std::transform(left.data(), left.data() + left.N(), left.data(),
+                 [right](float element) { return element - right; });
+  return left;
+}
+
+template <typename T1>
+Matrix<T1> &operator-=(Matrix<T1> &left, const double &right) {
+  std::transform(left.data(), left.data() + left.N(), left.data(),
+                 [right](double element) { return element - right; });
+  return left;
+}
+
 template <typename T1, typename T2>
 Matrix<T1> operator-(const Matrix<T1> &left, const Matrix<T2> &right) {
   auto result = Matrix(left);
   operator-=(result, right);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator-(Matrix<T1> &left, const float &right) {
+  auto result = Matrix(left);
+  operator-=(result, right);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator-(Matrix<T1> &left, const double &right) {
+  auto result = Matrix(left);
+  operator-=(result, right);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator-(const float &left, Matrix<T1> &right) {
+  auto result = Matrix(right) * -1.0;
+  operator+=(result, left);
+
+  return result;
+}
+
+template <typename T1>
+Matrix<T1> operator-(const double &left, Matrix<T1> &right) {
+  auto result = Matrix(right) * -1.0;
+  operator+=(result, left);
 
   return result;
 }
@@ -196,21 +291,153 @@ Matrix<double> operator*(Matrix<double> &left, Matrix<double> &right) {
   return C;
 }
 
-// Worth saying that conversion between Matrix base types is not considered here
-// to avoid performance penalties in conversions.
-
 // Some alias typing definitions
-template <typename T> class ColumnVector : Matrix<T> {
-  ColumnVector(const uint64_t &N) : Matrix<T>(N, 1) {}
+template <typename T> class RowVector : public Matrix<T> {
+public:
+  RowVector(const uint64_t &N) : Matrix<T>(1, N) { this->_N = N; }
+  RowVector(const uint64_t &N, const T &value) : Matrix<T>(1, N, value) {
+    this->_N = N;
+  }
+  RowVector(const uint64_t &N, T (*f)(const uint64_t &, const uint64_t &))
+      : Matrix<T>(1, N, f) {
+    this->_N = N;
+  }
+  RowVector(const uint64_t &N,
+            const std::function<T(const uint64_t &, const uint64_t &)> &f)
+      : Matrix<T>(1, N, f) {
+    this->_N = N;
+  }
+
+  template <uint64_t ndim>
+  RowVector(const T (&values)[ndim]) : Matrix<T>(1, N) {
+    std::copy(values, values + ndim, this->data());
+  }
+
+  RowVector() : Matrix<T>() {}
+
+  T &operator()(uint64_t n) { return Matrix<T>::operator()(0, n); }
+
+  uint64_t N() { return this->_N; }
+
+private:
+  uint64_t _N;
 };
 
-template <typename T> class RowVector : Matrix<T> {
-  RowVector(const uint64_t &N) : Matrix<T>(1, N) {}
+template <typename T> class ColumnVector : public Matrix<T> {
+public:
+  ColumnVector(const uint64_t &N) : Matrix<T>(N, 1) { this->_N = N; }
+  ColumnVector(const uint64_t &N, const T &value) : Matrix<T>(N, 1, value) {
+    this->_N = N;
+  }
+  ColumnVector(const uint64_t &N, T (*f)(const uint64_t &, const uint64_t &))
+      : Matrix<T>(N, 1, f) {
+    this->_N = N;
+  }
+  ColumnVector(const uint64_t &N,
+               const std::function<T(const uint64_t &, const uint64_t &)> &f)
+      : Matrix<T>(N, 1, f) {
+    this->_N = N;
+  }
+
+  template <uint64_t ndim>
+  ColumnVector(const T (&values)[ndim]) : Matrix<T>(1, N) {
+    std::copy(values, values + ndim, this->data());
+  }
+
+  ColumnVector() : Matrix<T>() {}
+
+  T &operator()(uint64_t n) { return Matrix<T>::operator()(n, 0); }
+
+  uint64_t N() { return this->_N; }
+
+private:
+  uint64_t _N;
 };
 
-template <typename T> class Vector : Matrix<T> {
-  Vector(const uint64_t &N) : Matrix<T>(N, 1) {}
-};
+// Dot product
+template <typename T1, typename T2>
+T1 dot(RowVector<T1> &left, ColumnVector<T2> &right) {
+  if (left.N() == right.N())
+    return std::inner_product(left.data(), left.data() + left.N(), right.data(),
+                              0.0);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+template <> float dot(RowVector<float> &left, ColumnVector<float> &right) {
+  if (left.N() == right.N())
+    return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+template <> double dot(RowVector<double> &left, ColumnVector<double> &right) {
+  if (left.N() == right.N())
+    return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+// Generalized dot product - RowVector
+template <typename T1, typename T2>
+T1 dot(RowVector<T1> &left, RowVector<T2> &right) {
+  if (left.N() == right.N())
+    return std::inner_product(left.data(), left.data() + left.N(), right.data(),
+                              0.0);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+template <> float dot(RowVector<float> &left, RowVector<float> &right) {
+  if (left.N() == right.N())
+    return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+template <> double dot(RowVector<double> &left, RowVector<double> &right) {
+  if (left.N() == right.N())
+    return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+// Generalized dot product - ColumnVector
+template <typename T1, typename T2>
+T1 dot(ColumnVector<T1> &left, ColumnVector<T2> &right) {
+  if (left.N() == right.N())
+    return std::inner_product(left.data(), left.data() + left.N(), right.data(),
+                              0.0);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+template <> float dot(ColumnVector<float> &left, ColumnVector<float> &right) {
+  if (left.N() == right.N())
+    return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+template <>
+double dot(ColumnVector<double> &left, ColumnVector<double> &right) {
+  if (left.N() == right.N())
+    return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
+  else
+    throw std::runtime_error("Shape mismatch for dot.");
+}
+
+template <typename T1, typename T2> T1 dot(const T1 &left, const T2 &right) {
+  return left * right;
+}
+
+template <typename T> T fabs(const T &v) { return std::fabs(v); }
+
+template <typename T> T fabs(RowVector<T> &v) { return std::sqrt(dot(v, v)); }
+
+template <typename T> T fabs(ColumnVector<T> &v) {
+  return std::sqrt(dot(v, v));
+}
 
 } // namespace cppmatrix
 

@@ -22,8 +22,10 @@ template <typename T> T ones(const uint64_t &i, const uint64_t &j) {
   return T(1);
 }
 
-// Base filler for complex fill
+// Base filler for complex fill- matrices
 template <typename T> class BaseFill {
+
+public:
   virtual std::function<T(const uint64_t &, const uint64_t &)> filler() {
     return [](const uint64_t &i, const uint64_t &j) { return T(0); };
   }

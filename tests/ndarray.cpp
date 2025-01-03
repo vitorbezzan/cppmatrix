@@ -2,10 +2,12 @@
 #include "../include/ndarray.h"
 #include <gtest/gtest.h>
 
+using namespace cppmatrix;
+
 TEST(NDArray, base_constructor_float) {
   float value = 10.0;
 
-  auto A = cppmatrix::NDArray<float>({2, 2, 2}, value);
+  auto A = NDArray<float>({2, 2, 2}, value);
   auto data = A.data();
 
   EXPECT_EQ(A.ndim(), 3);
@@ -19,7 +21,7 @@ TEST(NDArray, base_constructor_float) {
 TEST(NDArray, base_operator_reference_float) {
   double value = 10.0;
 
-  auto A = cppmatrix::NDArray<float>({2, 2, 2}, value);
+  auto A = NDArray<float>({2, 2, 2}, value);
   auto data = A.data();
 
   EXPECT_EQ(A.ndim(), 3);
@@ -36,7 +38,7 @@ TEST(NDArray, base_operator_reference_float) {
 TEST(NDArray, base_constructor_double) {
   double value = 10.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value);
+  auto A = NDArray<double>({2, 2, 2}, value);
   auto data = A.data();
 
   EXPECT_EQ(A.ndim(), 3);
@@ -50,7 +52,7 @@ TEST(NDArray, base_constructor_double) {
 TEST(NDArray, base_operator_reference_double) {
   float value = 10.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value);
+  auto A = NDArray<double>({2, 2, 2}, value);
   auto data = A.data();
 
   EXPECT_EQ(A.ndim(), 3);
@@ -67,8 +69,8 @@ TEST(NDArray, base_operator_reference_double) {
 TEST(NDArray, equals_float_float) {
   float value = 10.0;
 
-  auto A = cppmatrix::NDArray<float>({2, 2, 2}, value);
-  auto B = cppmatrix::NDArray<float>();
+  auto A = NDArray<float>({2, 2, 2}, value);
+  auto B = NDArray<float>();
 
   B = A;
 
@@ -83,8 +85,8 @@ TEST(NDArray, equals_float_float) {
 TEST(NDArray, equals_double_double) {
   double value = 10.0;
 
-  auto A = cppmatrix::NDArray<float>({2, 2, 2}, value);
-  auto B = cppmatrix::NDArray<float>();
+  auto A = NDArray<float>({2, 2, 2}, value);
+  auto B = NDArray<float>();
 
   B = A;
 
@@ -100,8 +102,8 @@ TEST(NDArray, sum_ndarray_float_float) {
   float value1 = 1.0;
   float value2 = 2.0;
 
-  auto A = cppmatrix::NDArray<float>({2, 2, 2}, value1);
-  auto B = cppmatrix::NDArray<float>({2, 2, 2}, value2);
+  auto A = NDArray<float>({2, 2, 2}, value1);
+  auto B = NDArray<float>({2, 2, 2}, value2);
 
   A += B;
   auto C = A + B;
@@ -119,8 +121,8 @@ TEST(NDArray, sum_ndarray_double_double) {
   double value1 = 1.0;
   double value2 = 2.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value1);
-  auto B = cppmatrix::NDArray<double>({2, 2, 2}, value2);
+  auto A = NDArray<double>({2, 2, 2}, value1);
+  auto B = NDArray<double>({2, 2, 2}, value2);
 
   A += B;
 
@@ -139,8 +141,8 @@ TEST(NDArray, sum_ndarray_double_float) {
   double value1 = 1.0;
   double value2 = 2.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value1);
-  auto B = cppmatrix::NDArray<float>({2, 2, 2}, value2);
+  auto A = NDArray<double>({2, 2, 2}, value1);
+  auto B = NDArray<float>({2, 2, 2}, value2);
 
   A += B;
 
@@ -159,8 +161,8 @@ TEST(NDArray, diff_ndarray_double_float) {
   double value1 = 1.0;
   double value2 = 2.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value2);
-  auto B = cppmatrix::NDArray<float>({2, 2, 2}, value1);
+  auto A = NDArray<double>({2, 2, 2}, value2);
+  auto B = NDArray<float>({2, 2, 2}, value1);
 
   A -= B;
 
@@ -178,7 +180,7 @@ TEST(NDArray, diff_ndarray_double_float) {
 TEST(NDArray, mult_ndarray_double_double) {
   double value2 = 2.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value2);
+  auto A = NDArray<double>({2, 2, 2}, value2);
 
   A *= value2;
 
@@ -193,7 +195,7 @@ TEST(NDArray, mult_ndarray_double_double) {
 TEST(NDArray, mult_ndarray_double_float) {
   float value2 = 2.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value2);
+  auto A = NDArray<double>({2, 2, 2}, value2);
 
   A *= value2;
 
@@ -208,7 +210,7 @@ TEST(NDArray, mult_ndarray_double_float) {
 TEST(NDArray, mult_ndarray_double_float_noref) {
   float value2 = 2.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value2);
+  auto A = NDArray<double>({2, 2, 2}, value2);
   auto C = A * value2;
 
   for (size_t i = 0; i < 2; i++)
@@ -223,8 +225,8 @@ TEST(NDArray, mult_ndarray_float_double_noref) {
   float value2 = 2.0;
   double value1 = 1.0;
 
-  auto A = cppmatrix::NDArray<double>({2, 2, 2}, value2);
-  auto B = cppmatrix::NDArray<double>({2, 2, 2}, value1);
+  auto A = NDArray<double>({2, 2, 2}, value2);
+  auto B = NDArray<double>({2, 2, 2}, value1);
   auto C = (value2 * A) + B;
 
   for (size_t i = 0; i < 2; i++)
