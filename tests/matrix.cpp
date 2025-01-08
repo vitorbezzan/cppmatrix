@@ -1,6 +1,5 @@
 /* tests root for Matrix */
-#include "../include/matrix.h"
-#include "../include/fillers.h"
+#include "../include/cppmatrix.h"
 #include <cmath>
 #include <gtest/gtest.h>
 
@@ -140,4 +139,12 @@ TEST(Matrix, matrix_minus_number) {
       EXPECT_FLOAT_EQ(M3(i, j), 3.0 - M2(i, j));
       EXPECT_FLOAT_EQ(M4(i, j), M2(i, j) - 1.5);
     }
+}
+
+TEST(Matrix, vector_fill) {
+  auto M1 = ColumnVector<float>(3, VNormalFill<float>(42, 0.0, 1.0).filler());
+  auto M2 = ColumnVector<float>({M1(0), M1(1), M1(2)});
+
+  for (uint64_t i = 0; i < M2.N(); i++)
+    EXPECT_FLOAT_EQ(M1(i), M2(i));
 }

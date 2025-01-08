@@ -1,5 +1,5 @@
 /* tests root for NDArray */
-#include "../include/ndarray.h"
+#include "../include/cppmatrix.h"
 #include <gtest/gtest.h>
 
 using namespace cppmatrix;

@@ -4,9 +4,7 @@
 #include "ndarray.h"
 #include <algorithm>
 #include <cblas.h>
-#include <cmath>
 #include <functional>
-#include <numeric>
 #include <stdexcept>
 #include <type_traits>
 
@@ -40,8 +38,8 @@ public:
     this->_rows = rows;
     this->_cols = cols;
 
-    for (int row = 0; row < this->_rows; row++)
-      for (int col = 0; col < this->_cols; col++)
+    for (uint64_t row = 0; row < this->_rows; row++)
+      for (uint64_t col = 0; col < this->_cols; col++)
         this->operator()(row, col) = f(row, col);
   }
 
@@ -51,8 +49,8 @@ public:
     this->_rows = rows;
     this->_cols = cols;
 
-    for (int row = 0; row < this->_rows; row++)
-      for (int col = 0; col < this->_cols; col++)
+    for (uint64_t row = 0; row < this->_rows; row++)
+      for (uint64_t col = 0; col < this->_cols; col++)
         this->operator()(row, col) = f(row, col);
   }
 
@@ -252,7 +250,6 @@ inline Matrix<T1> _check_compat(const Matrix<T1> &left,
   return Matrix<T1>(left.rows(), right.cols(), T1(0));
 }
 
-// Naive implementations for unknown types that support arithmetic
 template <typename T1, typename T2>
 Matrix<T1> naive_multiply(Matrix<T1> &left, Matrix<T2> &right) {
   auto C = _check_compat(left, right);
@@ -270,8 +267,6 @@ Matrix<T1> operator*(Matrix<T1> &left, Matrix<T2> &right) {
   return naive_multiply(left, right);
 }
 
-// Overloaded implementations for specific types
-// float
 Matrix<float> operator*(Matrix<float> &left, Matrix<float> &right) {
   Matrix<float> C = _check_compat(left, right);
   cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, left.rows(),
@@ -281,7 +276,6 @@ Matrix<float> operator*(Matrix<float> &left, Matrix<float> &right) {
   return C;
 }
 
-// double
 Matrix<double> operator*(Matrix<double> &left, Matrix<double> &right) {
   Matrix<double> C = _check_compat(left, right);
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, left.rows(),
@@ -289,154 +283,6 @@ Matrix<double> operator*(Matrix<double> &left, Matrix<double> &right) {
               right.data(), right.rows(), 1.0, C.data(), left.rows());
 
   return C;
-}
-
-// Some alias typing definitions
-template <typename T> class RowVector : public Matrix<T> {
-public:
-  RowVector(const uint64_t &N) : Matrix<T>(1, N) { this->_N = N; }
-  RowVector(const uint64_t &N, const T &value) : Matrix<T>(1, N, value) {
-    this->_N = N;
-  }
-  RowVector(const uint64_t &N, T (*f)(const uint64_t &, const uint64_t &))
-      : Matrix<T>(1, N, f) {
-    this->_N = N;
-  }
-  RowVector(const uint64_t &N,
-            const std::function<T(const uint64_t &, const uint64_t &)> &f)
-      : Matrix<T>(1, N, f) {
-    this->_N = N;
-  }
-
-  template <uint64_t ndim>
-  RowVector(const T (&values)[ndim]) : Matrix<T>(1, N) {
-    std::copy(values, values + ndim, this->data());
-  }
-
-  RowVector() : Matrix<T>() {}
-
-  T &operator()(uint64_t n) { return Matrix<T>::operator()(0, n); }
-
-  uint64_t N() { return this->_N; }
-
-private:
-  uint64_t _N;
-};
-
-template <typename T> class ColumnVector : public Matrix<T> {
-public:
-  ColumnVector(const uint64_t &N) : Matrix<T>(N, 1) { this->_N = N; }
-  ColumnVector(const uint64_t &N, const T &value) : Matrix<T>(N, 1, value) {
-    this->_N = N;
-  }
-  ColumnVector(const uint64_t &N, T (*f)(const uint64_t &, const uint64_t &))
-      : Matrix<T>(N, 1, f) {
-    this->_N = N;
-  }
-  ColumnVector(const uint64_t &N,
-               const std::function<T(const uint64_t &, const uint64_t &)> &f)
-      : Matrix<T>(N, 1, f) {
-    this->_N = N;
-  }
-
-  template <uint64_t ndim>
-  ColumnVector(const T (&values)[ndim]) : Matrix<T>(1, N) {
-    std::copy(values, values + ndim, this->data());
-  }
-
-  ColumnVector() : Matrix<T>() {}
-
-  T &operator()(uint64_t n) { return Matrix<T>::operator()(n, 0); }
-
-  uint64_t N() { return this->_N; }
-
-private:
-  uint64_t _N;
-};
-
-// Dot product
-template <typename T1, typename T2>
-T1 dot(RowVector<T1> &left, ColumnVector<T2> &right) {
-  if (left.N() == right.N())
-    return std::inner_product(left.data(), left.data() + left.N(), right.data(),
-                              0.0);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-template <> float dot(RowVector<float> &left, ColumnVector<float> &right) {
-  if (left.N() == right.N())
-    return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-template <> double dot(RowVector<double> &left, ColumnVector<double> &right) {
-  if (left.N() == right.N())
-    return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-// Generalized dot product - RowVector
-template <typename T1, typename T2>
-T1 dot(RowVector<T1> &left, RowVector<T2> &right) {
-  if (left.N() == right.N())
-    return std::inner_product(left.data(), left.data() + left.N(), right.data(),
-                              0.0);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-template <> float dot(RowVector<float> &left, RowVector<float> &right) {
-  if (left.N() == right.N())
-    return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-template <> double dot(RowVector<double> &left, RowVector<double> &right) {
-  if (left.N() == right.N())
-    return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-// Generalized dot product - ColumnVector
-template <typename T1, typename T2>
-T1 dot(ColumnVector<T1> &left, ColumnVector<T2> &right) {
-  if (left.N() == right.N())
-    return std::inner_product(left.data(), left.data() + left.N(), right.data(),
-                              0.0);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-template <> float dot(ColumnVector<float> &left, ColumnVector<float> &right) {
-  if (left.N() == right.N())
-    return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-template <>
-double dot(ColumnVector<double> &left, ColumnVector<double> &right) {
-  if (left.N() == right.N())
-    return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
-  else
-    throw std::runtime_error("Shape mismatch for dot.");
-}
-
-template <typename T1, typename T2> T1 dot(const T1 &left, const T2 &right) {
-  return left * right;
-}
-
-template <typename T> T fabs(const T &v) { return std::fabs(v); }
-
-template <typename T> T fabs(RowVector<T> &v) { return std::sqrt(dot(v, v)); }
-
-template <typename T> T fabs(ColumnVector<T> &v) {
-  return std::sqrt(dot(v, v));
 }
 
 } // namespace cppmatrix

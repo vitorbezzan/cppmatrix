@@ -6,5 +6,6 @@
 #include "matrix.h"
 #include "ndarray.h"
 #include "newton.h"
+#include "vector.h"
 
 #endif // CPPMATRIX_H

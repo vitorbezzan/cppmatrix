@@ -1,6 +1,5 @@
 /* tests root for dot product */
-#include "../include/fillers.h"
-#include "../include/matrix.h"
+#include "../include/cppmatrix.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <numeric>
