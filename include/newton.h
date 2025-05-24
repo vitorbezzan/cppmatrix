@@ -17,7 +17,7 @@
 
 namespace cppmatrix {
     // Defines a base rootfinding with defined precision and multiple outputs
-    template<typename P, typename I, typename O>
+    template<typename P, typename I>
     class BaseRootFind {
     public:
         BaseRootFind(const P &precision, const uint64_t &n) {
@@ -30,7 +30,7 @@ namespace cppmatrix {
         P precision() { return this->_precision; }
         [[nodiscard]] uint64_t n() const { return this->_n; }
 
-        virtual O run(const I &x0) = 0;
+        virtual I run(const I &x0) = 0;
 
     private:
         P _precision;
@@ -39,14 +39,14 @@ namespace cppmatrix {
 
     // Newton rootfinding algorithm for real functions
     template<IsRealFunction F>
-    class Newton final : public BaseRootFind<PrecisionT<F>, InputT<F>, ValueT<F> > {
+    class Newton final : public BaseRootFind<PrecisionT<F>, InputT<F> > {
     public:
         Newton(const F &f, const PrecisionT<F> &precision, const uint64_t &n)
-            : BaseRootFind<PrecisionT<F>, InputT<F>, ValueT<F> >(precision, n) {
+            : BaseRootFind<PrecisionT<F>, InputT<F> >(precision, n) {
             this->_f = f;
         }
 
-        ValueT<F> run(const PrecisionT<F> &x0) override {
+        InputT<F> run(const InputT<F> &x0) override {
             InputT<F> x = x0;
             InputT<F> x_new;
 
@@ -54,6 +54,38 @@ namespace cppmatrix {
                 x_new = x - this->_f(x) / this->_f.d1(x);
 
                 if (fabs(x_new - x) <= this->precision())
+                    break;
+
+                x = x_new;
+            }
+
+            return x;
+        }
+
+    private:
+        F _f;
+    };
+
+    // Rootfinding for scalar fields using Polyak's method
+    template<IsScalarField F>
+    class Polyak final : public BaseRootFind<PrecisionT<F>, InputT<F> > {
+    public:
+        Polyak(const F &f, const PrecisionT<F> &precision, const uint64_t &n)
+            : BaseRootFind<PrecisionT<F>, InputT<F> >(precision, n) {
+            this->_f = f;
+        }
+
+        InputT<F> run(const InputT<F> &x0) override {
+            InputT<F> x(x0);
+            InputT<F> x_new(x0);
+
+            for (uint64_t N = 0; N < this->n(); N++) {
+                auto d1 = this->_f.d1(x);
+                auto norm_d1 = invqnorm(this->_f.d1(x)) * d1;
+
+                x_new = x - this->_f(x) * norm_d1;
+
+                if (norm(x_new - x) <= this->precision())
                     break;
 
                 x = x_new;

@@ -15,7 +15,7 @@ TEST(dot, test_dot_float) {
     auto result_naive = std::inner_product(left.data(), left.data() + left.N(),
                                            right.data(), 0.0);
 
-    auto l2_norm = fabs(left);
+    auto l2_norm = norm(left);
     auto l2_norm_naive = std::sqrt(std::inner_product(
         left.data(), left.data() + left.N(), left.data(), 0.0));
 
@@ -33,7 +33,7 @@ TEST(dot, test_dot_double) {
     auto result_naive = std::inner_product(left.data(), left.data() + left.N(),
                                            right.data(), 0.0);
 
-    auto l2_norm = fabs(right);
+    auto l2_norm = norm(right);
     auto l2_norm_naive = std::sqrt(std::inner_product(
         right.data(), right.data() + right.N(), right.data(), 0.0));
 

@@ -24,6 +24,10 @@ namespace cppmatrix {
     template<typename T>
     class RowVector final : public Matrix<T> {
     public:
+        // Friend definitions
+        template<typename U>
+        friend class RowVector;
+
         // Constructors
         RowVector() : Matrix<T>() {
         };
@@ -59,10 +63,15 @@ namespace cppmatrix {
             this->_N = M.rows();
         }
 
-        RowVector(const RowVector<T> &v) : Matrix<T>(1, v.N()) { this->_N = v.N(); }
+        RowVector(const RowVector<T> &v) : Matrix<T>(1, v.N()) {
+            this->_N = v.N();
+            std::copy(v.data(), v.data() + v.N(), this->data());
+        }
 
-        // Access operator
+        // Access operators
         T &operator()(uint64_t n) { return Matrix<T>::operator()(0, n); }
+
+        T &operator[](uint64_t n) { return this->operator()(n); }
 
         // Operators: multiplication from the right
         template<typename T2>
@@ -109,6 +118,7 @@ namespace cppmatrix {
 
     // Operators: plus (for scalars)
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     RowVector<T1> &operator+=(RowVector<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
                        [right](T2 element) { return element + right; });
@@ -116,6 +126,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     RowVector<T1> operator+(RowVector<T1> &left, const T2 &right) {
         auto result = RowVector(left);
         operator+=(result, right);
@@ -124,6 +135,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T1>
     RowVector<T2> operator+(const T1 &left, RowVector<T2> &right) {
         auto result = Matrix(right);
         operator+=(result, left);
@@ -154,6 +166,7 @@ namespace cppmatrix {
 
     // Operators: minus (for scalars)
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     RowVector<T1> &operator-=(RowVector<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
                        [right](T2 element) { return element - right; });
@@ -161,6 +174,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     RowVector<T1> operator-(RowVector<T1> &left, const T2 &right) {
         auto result = RowVector(left);
         operator-=(result, right);
@@ -169,6 +183,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T1>
     RowVector<T2> operator-(const T1 &left, RowVector<T2> &right) {
         auto result = RowVector(right) * -1.0;
         operator+=(result, left);
@@ -178,6 +193,7 @@ namespace cppmatrix {
 
     // Operators: multiplication from the left
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T1>
     RowVector<T2> operator*(const T1 &left, RowVector<T2> &right) {
         auto new_mult = T2(left);
         return right * new_mult;
@@ -224,7 +240,13 @@ namespace cppmatrix {
     }
 
     template<typename T>
-    T fabs(RowVector<T> &v) { return std::sqrt(dot(v, v)); }
+    T norm(const RowVector<T> &v) { return std::sqrt(dot(v, v)); }
+
+    template<typename T>
+    T qnorm(const RowVector<T> &v) { return dot(v, v); }
+
+    template<typename T>
+    T invqnorm(const RowVector<T> &v) { return 1 / dot(v, v); }
 } // namespace cppmatrix
 
 #endif

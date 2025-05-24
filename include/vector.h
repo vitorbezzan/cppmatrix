@@ -48,13 +48,6 @@ namespace cppmatrix {
     T1 dot(const T1 &left, const T2 &right) {
         return left * right;
     }
-
-    template<typename T>
-    T fabs(const T &v) { return std::fabs(v); }
-
-    // Defines a Vector type that can be used in generic function definitions.
-    template<typename T>
-    using Vector = std::variant<ColumnVector<T>, RowVector<T> >;
 } // namespace cppmatrix
 
 #endif

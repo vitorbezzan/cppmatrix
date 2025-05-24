@@ -57,7 +57,7 @@ namespace cppmatrix {
     template<typename T>
         requires std::is_floating_point_v<T>
     using ScalarField =
-    BaseFunction<T, Vector<T>, T, Vector<T>, Matrix<T> >;
+    BaseFunction<T, ColumnVector<T>, T, ColumnVector<T>, Matrix<T> >;
 
     template<class F>
     concept IsScalarField = std::is_base_of_v<ScalarField<float>, F> ||
@@ -67,7 +67,7 @@ namespace cppmatrix {
     template<typename T>
         requires std::is_floating_point_v<T>
     using VectorField =
-    BaseFunction<T, Vector<T>, Vector<T>, Matrix<T>, NDArray<T> >;
+    BaseFunction<T, ColumnVector<T>, ColumnVector<T>, Matrix<T>, NDArray<T> >;
 
     template<class F>
     concept IsVectorField = std::is_base_of_v<VectorField<float>, F> ||

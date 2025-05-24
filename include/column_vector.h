@@ -24,6 +24,10 @@ namespace cppmatrix {
     template<typename T>
     class ColumnVector final : public Matrix<T> {
     public:
+        // Friend definitions
+        template<typename U>
+        friend class ColumnVector;
+
         // Constructors
         ColumnVector() : Matrix<T>() {
         };
@@ -64,10 +68,13 @@ namespace cppmatrix {
 
         ColumnVector(const ColumnVector<T> &v) : Matrix<T>(v.N(), 1) {
             this->_N = v.N();
+            std::copy(v.data(), v.data() + v.N(), this->data());
         }
 
-        // Access operator
+        // Access operators
         T &operator()(uint64_t n) { return Matrix<T>::operator()(n, 0); }
+
+        T &operator[](uint64_t n) { return this->operator()(n); }
 
         // Operators: multiplication from the right
         template<typename T2>
@@ -115,6 +122,7 @@ namespace cppmatrix {
 
     // Operators: plus (for scalars)
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     ColumnVector<T1> &operator+=(ColumnVector<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
                        [right](T2 element) { return element + right; });
@@ -122,6 +130,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     ColumnVector<T1> operator+(ColumnVector<T1> &left, const T2 &right) {
         auto result = ColumnVector(left);
         operator+=(result, right);
@@ -130,6 +139,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T1>
     ColumnVector<T2> operator+(const T1 &left, ColumnVector<T2> &right) {
         auto result = Matrix(right);
         operator+=(result, left);
@@ -162,6 +172,7 @@ namespace cppmatrix {
 
     // Operators: minus (for scalars)
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     ColumnVector<T1> &operator-=(ColumnVector<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
                        [right](T2 element) { return element - right; });
@@ -169,6 +180,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T2>
     ColumnVector<T1> operator-(ColumnVector<T1> &left, const T2 &right) {
         auto result = ColumnVector(left);
         operator-=(result, right);
@@ -177,6 +189,7 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
+        requires std::is_arithmetic_v<T1>
     ColumnVector<T2> operator-(const T1 &left, ColumnVector<T2> &right) {
         auto result = ColumnVector(right) * -1.0;
         operator+=(result, left);
@@ -232,9 +245,15 @@ namespace cppmatrix {
     }
 
     template<typename T>
-    T fabs(ColumnVector<T> &v) {
+    T norm(const ColumnVector<T> &v) {
         return std::sqrt(dot(v, v));
     }
+
+    template<typename T>
+    T qnorm(const ColumnVector<T> &v) { return dot(v, v); }
+
+    template<typename T>
+    T invqnorm(const ColumnVector<T> &v) { return 1 / dot(v, v); }
 } // namespace cppmatrix
 
 #endif
