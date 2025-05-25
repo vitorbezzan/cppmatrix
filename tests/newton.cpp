@@ -1,3 +1,15 @@
+/**
+ * @file newton.cpp
+ * @brief Tests for Newton's method and Polyak optimization
+ * 
+ * This file contains unit tests that verify:
+ * - Newton's method for root finding in real functions
+ * - Polyak optimization for scalar fields
+ * - Custom function implementations (TestFunction and TestScalarField)
+ * - Convergence to known solutions (e.g. sqrt(2))
+ * - Gradient and Hessian computations
+ */
+
 #include "../include/cppmatrix.h"
 #include <cmath>
 #include <gtest/gtest.h>
@@ -36,7 +48,7 @@ TEST(newton, test_polyak) {
     TestScalarField f{};
 
     auto x0 = ColumnVector<float>({1.0, 1.0});
-    auto root = Polyak(f, 0.0001, 100).run(x0);
+    auto root = Polyak(f, 1e-8, 100).run(x0);
 
     ASSERT_FLOAT_EQ(root[0], std::sqrt(2));
     ASSERT_FLOAT_EQ(root[1], std::sqrt(2));

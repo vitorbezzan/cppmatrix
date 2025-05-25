@@ -1,3 +1,15 @@
+/**
+ * @file matrix.cpp
+ * @brief Tests for Matrix class operations and functionality
+ * 
+ * This file contains unit tests that verify:
+ * - Matrix constructors (base, function-based, copy)
+ * - Matrix arithmetic operations (+, -, *)
+ * - Scalar operations (matrix-scalar multiplication)
+ * - Vector operations (column vectors, matrix-vector multiplication)
+ * - Performance comparison between naive and CBLAS implementations
+ */
+
 #include "../include/cppmatrix.h"
 #include <cmath>
 #include <gtest/gtest.h>

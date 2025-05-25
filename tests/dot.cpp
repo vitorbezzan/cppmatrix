@@ -1,3 +1,14 @@
+/**
+ * @file dot.cpp
+ * @brief Tests for dot product and vector norm operations
+ * 
+ * This file contains unit tests that verify:
+ * - Dot product operations between row and column vectors
+ * - L2 norm calculations for vectors
+ * - Tests are performed for both float and double precision
+ * - Results are compared against naive implementations using std::inner_product
+ */
+
 #include "../include/cppmatrix.h"
 #include <cmath>
 #include <numeric>

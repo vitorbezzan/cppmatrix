@@ -8,6 +8,9 @@
  * - Dot product and vector norm calculations
  * - Efficient matrix-vector multiplication
  * - Support for scalar operations and vector arithmetic
+ * - Template-based mixed-type operations
+ * - Various constructors including function-based initialization
+ * - Optimized memory layout for performance
  */
 
 #ifndef COLUMN_VECTOR_H

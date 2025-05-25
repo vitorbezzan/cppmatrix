@@ -1,3 +1,16 @@
+/**
+ * @file ndarray.cpp
+ * @brief Tests for N-dimensional array operations
+ * 
+ * This file contains unit tests that verify:
+ * - NDArray constructors and basic operations
+ * - Type handling (float and double precision)
+ * - Arithmetic operations (+, -, *)
+ * - Mixed type operations (float-double interactions)
+ * - Reference and non-reference operations
+ * - Multi-dimensional indexing and access
+ */
+
 #include "../include/cppmatrix.h"
 #include <gtest/gtest.h>
 

@@ -8,6 +8,10 @@
  * - Support for scalar operations and matrix arithmetic
  * - Row-major memory layout for optimal performance
  * - Various constructors including function-based initialization
+ * - Template-based mixed-type operations
+ * - Efficient element access and iteration
+ * - Exception handling for size mismatches
+ * - Comprehensive operator overloading
  */
 
 #ifndef MATRIX_H

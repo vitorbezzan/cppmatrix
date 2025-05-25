@@ -7,6 +7,10 @@
  * - Mixed-type operations between row and column vectors
  * - BLAS-optimized dot product operations for float and double types
  * - Generic vector operations that work with both vector types
+ * - Template specializations for optimized performance
+ * - Consistent interface for vector operations
+ * - Exception handling for dimension mismatches
+ * - Support for standard library algorithms
  */
 
 #ifndef VECTOR_H

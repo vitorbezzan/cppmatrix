@@ -8,6 +8,11 @@
  * - Basic arithmetic operations (+, -, *) with type checking
  * - Support for both scalar and array operations
  * - Efficient data access through linear memory layout
+ * - Template-based type safety and constraints
+ * - Move semantics for efficient memory handling
+ * - Flexible shape and dimension management
+ * - Exception handling for dimension mismatches
+ * - Comprehensive operator overloading
  */
 
 #ifndef NDARRAY_H
