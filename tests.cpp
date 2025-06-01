@@ -6,6 +6,7 @@
  * It includes various test suites that verify the functionality of different components:
  * 
  * - dot.cpp: Tests for vector dot product operations
+ * - integration.cpp: Tests for numerical integration methods
  * - matrix.cpp: Tests for matrix operations and manipulations
  * - ndarray.cpp: Tests for n-dimensional array functionality
  * - newton.cpp: Tests for Newton's method implementations
