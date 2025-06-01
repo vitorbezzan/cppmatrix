@@ -90,6 +90,11 @@ namespace cppmatrix {
             return NDArray<T>::operator()(index);
         }
 
+        const T &operator()(uint64_t row, uint64_t col) const {
+            uint64_t index[2] = {row, col};
+            return NDArray<T>::operator()(index);
+        }
+
         // Operators: multiplication from the right
         template<typename T2>
             requires std::is_floating_point_v<T2>

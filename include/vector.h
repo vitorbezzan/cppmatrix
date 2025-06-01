@@ -18,7 +18,6 @@
 
 #include "column_vector.h"
 #include "row_vector.h"
-#include <variant>
 
 // Defines operations for mixed-type vectors
 

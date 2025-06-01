@@ -91,6 +91,20 @@ namespace cppmatrix {
             return _data[_index];
         }
 
+        template<uint64_t ndim>
+        const T &operator()(uint64_t (&index)[ndim]) const {
+            uint64_t _index = 0;
+            for (uint64_t i = 0; i < this->_ndim; i++) {
+                uint64_t _product = 1;
+                for (uint64_t j = i + 1; j < this->_ndim; j++) {
+                    _product *= this->_shape[j];
+                }
+                _index += index[i] * _product;
+            }
+
+            return _data[_index];
+        }
+
         // Equality operator
         NDArray<T> &operator=(const NDArray<T> &right) {
             if (this != &right) {

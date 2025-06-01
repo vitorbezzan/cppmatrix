@@ -16,6 +16,12 @@
 
 using namespace cppmatrix;
 
+/**
+ * @brief Tests base constructor for float NDArray
+ * 
+ * Verifies initialization with constant value
+ * and correct dimension handling
+ */
 TEST(NDArray, base_constructor_float) {
     float value = 10.0;
 
@@ -30,6 +36,12 @@ TEST(NDArray, base_constructor_float) {
     }
 }
 
+/**
+ * @brief Tests reference operator for float NDArray
+ * 
+ * Verifies multi-dimensional indexing and access
+ * for float arrays
+ */
 TEST(NDArray, base_operator_reference_float) {
     double value = 10.0;
 
@@ -47,6 +59,12 @@ TEST(NDArray, base_operator_reference_float) {
             }
 }
 
+/**
+ * @brief Tests base constructor for double NDArray
+ * 
+ * Verifies initialization with constant value
+ * and correct dimension handling
+ */
 TEST(NDArray, base_constructor_double) {
     double value = 10.0;
 
@@ -61,6 +79,12 @@ TEST(NDArray, base_constructor_double) {
     }
 }
 
+/**
+ * @brief Tests reference operator for double NDArray
+ * 
+ * Verifies multi-dimensional indexing and access
+ * for double arrays
+ */
 TEST(NDArray, base_operator_reference_double) {
     float value = 10.0;
 
@@ -78,6 +102,11 @@ TEST(NDArray, base_operator_reference_double) {
             }
 }
 
+/**
+ * @brief Tests assignment operator for float NDArrays
+ * 
+ * Verifies deep copying of float arrays
+ */
 TEST(NDArray, equals_float_float) {
     float value = 10.0;
 
@@ -94,6 +123,11 @@ TEST(NDArray, equals_float_float) {
             }
 }
 
+/**
+ * @brief Tests assignment operator for double NDArrays
+ * 
+ * Verifies deep copying of double arrays
+ */
 TEST(NDArray, equals_double_double) {
     double value = 10.0;
 
@@ -110,6 +144,12 @@ TEST(NDArray, equals_double_double) {
             }
 }
 
+/**
+ * @brief Tests addition operations for float NDArrays
+ * 
+ * Verifies both in-place and non-in-place addition
+ * between float arrays
+ */
 TEST(NDArray, sum_ndarray_float_float) {
     float value1 = 1.0;
     float value2 = 2.0;
@@ -129,6 +169,12 @@ TEST(NDArray, sum_ndarray_float_float) {
             }
 }
 
+/**
+ * @brief Tests addition operations for double NDArrays
+ * 
+ * Verifies both in-place and non-in-place addition
+ * between double arrays
+ */
 TEST(NDArray, sum_ndarray_double_double) {
     double value1 = 1.0;
     double value2 = 2.0;
@@ -149,6 +195,12 @@ TEST(NDArray, sum_ndarray_double_double) {
             }
 }
 
+/**
+ * @brief Tests mixed type addition (double + float)
+ * 
+ * Verifies correct type promotion and addition
+ * between different precision arrays
+ */
 TEST(NDArray, sum_ndarray_double_float) {
     double value1 = 1.0;
     double value2 = 2.0;
@@ -169,6 +221,12 @@ TEST(NDArray, sum_ndarray_double_float) {
             }
 }
 
+/**
+ * @brief Tests mixed type subtraction (double - float)
+ * 
+ * Verifies correct type promotion and subtraction
+ * between different precision arrays
+ */
 TEST(NDArray, diff_ndarray_double_float) {
     double value1 = 1.0;
     double value2 = 2.0;
@@ -189,6 +247,11 @@ TEST(NDArray, diff_ndarray_double_float) {
             }
 }
 
+/**
+ * @brief Tests scalar multiplication for double NDArray
+ * 
+ * Verifies in-place multiplication by scalar
+ */
 TEST(NDArray, mult_ndarray_double_double) {
     double value2 = 2.0;
 
@@ -204,6 +267,11 @@ TEST(NDArray, mult_ndarray_double_double) {
             }
 }
 
+/**
+ * @brief Tests mixed type scalar multiplication
+ * 
+ * Verifies multiplication of double array by float scalar
+ */
 TEST(NDArray, mult_ndarray_double_float) {
     float value2 = 2.0;
 
@@ -219,6 +287,11 @@ TEST(NDArray, mult_ndarray_double_float) {
             }
 }
 
+/**
+ * @brief Tests non-reference scalar multiplication
+ * 
+ * Verifies creation of new array through scalar multiplication
+ */
 TEST(NDArray, mult_ndarray_double_float_noref) {
     float value2 = 2.0;
 
@@ -233,6 +306,12 @@ TEST(NDArray, mult_ndarray_double_float_noref) {
             }
 }
 
+/**
+ * @brief Tests complex mixed type operations
+ * 
+ * Verifies combination of scalar multiplication and addition
+ * with mixed precision types
+ */
 TEST(NDArray, mult_ndarray_float_double_noref) {
     float value2 = 2.0;
     double value1 = 1.0;

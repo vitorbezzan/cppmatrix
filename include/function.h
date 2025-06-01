@@ -18,6 +18,7 @@
 #include "ndarray.h"
 #include "vector.h"
 #include <type_traits>
+#include <functional>
 
 namespace cppmatrix {
     // Abstract class defining a function.
@@ -30,11 +31,11 @@ namespace cppmatrix {
         virtual ~BaseFunction() = default;
 
         // Function value, 1st and 2nd derivative
-        virtual O operator()(I &x) = 0;
+        virtual O operator()(const I &x) = 0;
 
-        virtual D1 d1(I &x) = 0;
+        virtual D1 d1(const I &x) = 0;
 
-        virtual D2 d2(I &x) = 0;
+        virtual D2 d2(const I &x) = 0;
 
         // Tricking the compiler into giving the types for the function.
         static P PrecisionT;
@@ -42,6 +43,11 @@ namespace cppmatrix {
         static O ValueT;
         static D1 D1ValueT;
         static D2 D2ValueT;
+
+        // Returns lambda function that evaluates the function.
+        std::function<O(const I &)> get_function() {
+            return std::function<O(const I &)>([this](const I &x) { return this->operator()(x); });
+        }
     };
 
     // Function R->R

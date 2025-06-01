@@ -17,6 +17,7 @@
  */
 
 #include "tests/dot.cpp"
+#include "tests/integration.cpp"
 #include "tests/matrix.cpp"
 #include "tests/ndarray.cpp"
 #include "tests/newton.cpp"

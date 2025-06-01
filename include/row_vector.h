@@ -74,8 +74,10 @@ namespace cppmatrix {
 
         // Access operators
         T &operator()(uint64_t n) { return Matrix<T>::operator()(0, n); }
+        const T &operator()(uint64_t n) const { return Matrix<T>::operator()(0, n); }
 
         T &operator[](uint64_t n) { return this->operator()(n); }
+        const T &operator[](uint64_t n) const { return this->operator()(n); }
 
         // Operators: multiplication from the right
         template<typename T2>
