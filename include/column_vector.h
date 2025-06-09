@@ -22,6 +22,7 @@
 #include <cmath>
 #include <functional>
 #include <stdexcept>
+#include <print>
 
 namespace cppmatrix {
     template<typename T>
@@ -259,6 +260,16 @@ namespace cppmatrix {
 
     template<typename T>
     T invqnorm(const ColumnVector<T> &v) { return 1 / dot(v, v); }
+
+    template<typename T>
+    void print(const ColumnVector<T> &v, const int &precision = 5) {
+
+        for(uint64_t i = 0; i < v.N(); i++) {
+            std::print("{:.{}} \n", v(i), precision);
+        }
+        std::print("\n");
+    }
+
 } // namespace cppmatrix
 
 #endif

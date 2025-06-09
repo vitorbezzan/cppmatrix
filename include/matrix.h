@@ -22,6 +22,7 @@
 #include <cblas.h>
 #include <functional>
 #include <stdexcept>
+#include <print>
 
 namespace cppmatrix {
     template<typename T>
@@ -260,6 +261,18 @@ namespace cppmatrix {
 
         return C;
     }
+
+    template<typename T>
+    void print(const Matrix<T> &M, const int &precision = 5) {
+
+        for(uint64_t i = 0; i < M.rows(); i++) {
+            for (uint64_t j = 0; j < M.cols(); j++) {
+                std::print("{:.{}} \t", M(i, j), precision);
+            }
+            std::print("\n");
+        }
+    }
+
 } // namespace cppmatrix
 
 #endif

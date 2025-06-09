@@ -253,6 +253,15 @@ namespace cppmatrix {
 
     template<typename T>
     T invqnorm(const RowVector<T> &v) { return 1 / dot(v, v); }
+
+    template<typename T>
+    void print(const RowVector<T> &v, const int &precision = 5) {
+
+        for(uint64_t j = 0; j < v.N(); j++) {
+            std::print("{:.{}} \t", v(j), precision);
+        }
+        std::print("\n");
+    }
 } // namespace cppmatrix
 
 #endif
