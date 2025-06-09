@@ -238,8 +238,6 @@ TEST(Vector, matrix_column_vector) {
     auto result = M * v;
     Matrix<double> convert = v;
 
-    print(M);
-
     auto naive = naive_multiply(M, convert);
 
     for (int n = 0; n < v.N(); n++)
