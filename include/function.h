@@ -41,7 +41,7 @@ namespace cppmatrix {
         static D2 D2ValueT;
 
         std::function<O(const I &)> get_function() {
-            return std::function<O(const I &)>([this](const I &x) { return this->operator()(x); });
+            return std::function < O(const I &) > ([this](const I &x) { return this->operator()(x); });
         }
     };
 

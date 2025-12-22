@@ -25,6 +25,7 @@ if (APPLE)
             "${HOMEBREW_PREFIX}"
             "${HOMEBREW_PREFIX}/opt/openblas"
             "${HOMEBREW_PREFIX}/opt/lapack"
+            "${HOMEBREW_PREFIX}/opt/libomp"
             "/usr/local"
     )
 
@@ -47,14 +48,17 @@ if (APPLE)
     find_package(GTest REQUIRED)
     find_package(BLAS REQUIRED)
     find_package(LAPACK REQUIRED)
+    find_package(OpenMP REQUIRED)
 
 elseif (UNIX)
 
     find_package(GTest REQUIRED)
     find_package(BLAS REQUIRED)
     find_package(LAPACK REQUIRED)
+    find_package(OpenMP REQUIRED)
 
 endif ()
 
 add_executable(run_tests tests.cpp)
-target_link_libraries(run_tests GTest::gtest GTest::gtest_main ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+target_link_libraries(run_tests GTest::gtest GTest::gtest_main ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} OpenMP::OpenMP_CXX)
+target_compile_definitions(run_tests PRIVATE CPPMATRIX_USE_OPENMP=1)

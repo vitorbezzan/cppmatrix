@@ -18,11 +18,17 @@
 
 #include "column_vector.h"
 #include "row_vector.h"
+#ifdef CPPMATRIX_USE_OPENMP
+#include <omp.h>
+#endif
 
 namespace cppmatrix {
     template<typename T>
     RowVector<T> ColumnVector<T>::transpose() const {
         RowVector<T> result(this->N());
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for
+#endif
         for (uint64_t i = 0; i < this->N(); ++i)
             result(i) = this->operator()(i);
         return result;
@@ -31,6 +37,9 @@ namespace cppmatrix {
     template<typename T>
     ColumnVector<T> RowVector<T>::transpose() const {
         ColumnVector<T> result(this->N());
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for
+#endif
         for (uint64_t i = 0; i < this->N(); ++i)
             result(i) = this->operator()(i);
         return result;
@@ -49,8 +58,17 @@ namespace cppmatrix {
     template<typename T1, typename T2>
     T1 dot(const RowVector<T1> &left, const ColumnVector<T2> &right) {
         if (left.N() == right.N())
-            return std::inner_product(left.data(), left.data() + left.N(), right.data(),
-                                      T1(0.0));
+#ifdef CPPMATRIX_USE_OPENMP
+        {
+            T1 sum = 0;
+#pragma omp parallel for reduction(+:sum)
+            for (uint64_t i = 0; i < left.N(); ++i)
+                sum += left(i) * right(i);
+            return sum;
+        }
+#else
+            return std::inner_product(left.data(), left.data() + left.N(), right.data(), T1(0.0));
+#endif
         else
             throw std::runtime_error("Shape mismatch for dot(): vector sizes must match.");
     }

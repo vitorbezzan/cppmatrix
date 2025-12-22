@@ -24,6 +24,9 @@
 #include <limits>
 #include <stdexcept>
 #include <print>
+#ifdef CPPMATRIX_USE_OPENMP
+#include <omp.h>
+#endif
 
 namespace cppmatrix {
     template<typename T>
@@ -180,9 +183,12 @@ namespace cppmatrix {
             const uint64_t rows = this->_rows;
             const uint64_t cols = this->_cols;
 
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for collapse(2)
+#endif
             for (uint64_t i0 = 0; i0 < rows; i0 += BLOCK_SIZE) {
-                const uint64_t i_max = std::min(rows, i0 + BLOCK_SIZE);
                 for (uint64_t j0 = 0; j0 < cols; j0 += BLOCK_SIZE) {
+                    const uint64_t i_max = std::min(rows, i0 + BLOCK_SIZE);
                     const uint64_t j_max = std::min(cols, j0 + BLOCK_SIZE);
 
                     for (uint64_t i = i0; i < i_max; ++i) {
@@ -318,6 +324,9 @@ namespace cppmatrix {
     Matrix<T1> multiply_naive(const Matrix<T1> &left, const Matrix<T2> &right) {
         auto C = detail::create_result_matrix(left, right);
 
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for collapse(2)
+#endif
         for (uint64_t i = 0; i < left.rows(); i++)
             for (uint64_t j = 0; j < right.cols(); j++)
                 for (uint64_t k = 0; k < left.cols(); k++)

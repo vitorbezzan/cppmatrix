@@ -23,6 +23,9 @@
 #include <numeric>
 #include <stdexcept>
 #include <type_traits>
+#ifdef CPPMATRIX_USE_OPENMP
+#include <omp.h>
+#endif
 
 namespace cppmatrix {
     template<typename T = float>
@@ -46,19 +49,23 @@ namespace cppmatrix {
         NDArray() = default;
 
         template<uint64_t ndim>
-        explicit NDArray(
+        explicit NDArray (
 
-            const uint64_t (&shape)[ndim]
-        ) {
+            
+        const uint64_t (&shape)[ndim]
+        )
+ {
             this->_allocate(ndim, shape);
         }
 
         template<uint64_t ndim, typename U>
             requires std::is_floating_point_v<U>
-        NDArray(
+        NDArray (
 
-            const uint64_t (&shape)[ndim], U &value
-        ) {
+            
+        const uint64_t (&shape)[ndim], U &value
+        )
+ {
             this->_allocate(ndim, shape);
             std::fill(this->_data, this->_data + this->N(), T(value));
         }
@@ -141,9 +148,11 @@ namespace cppmatrix {
 
         template<typename T2>
         NDArray<T> &operator*=(const T2 &right) {
-            std::transform(
-                this->_data, this->_data + this->N(), this->_data,
-                std::bind(std::multiplies<T>(), std::placeholders::_1, T(right)));
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for
+#endif
+            for (uint64_t idx = 0; idx < this->N(); ++idx)
+                this->_data[idx] = std::multiplies<T>()(this->_data[idx], T(right));
             return *this;
         }
 
@@ -158,9 +167,11 @@ namespace cppmatrix {
         NDArray<T> &operator/=(const T2 &right) {
             if (right == T2(0))
                 throw std::runtime_error("Division by zero.");
-            std::transform(
-                this->_data, this->_data + this->N(), this->_data,
-                std::bind(std::divides<T>(), std::placeholders::_1, T(right)));
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for
+#endif
+            for (uint64_t idx = 0; idx < this->N(); ++idx)
+                this->_data[idx] = std::divides<T>()(this->_data[idx], T(right));
             return *this;
         }
 

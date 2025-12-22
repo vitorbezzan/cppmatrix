@@ -23,7 +23,10 @@
 #include <functional>
 #include <limits>
 #include <stdexcept>
-#include <print>
+#include <type_traits>
+#ifdef CPPMATRIX_USE_OPENMP
+#include <omp.h>
+#endif
 
 namespace cppmatrix {
     template<typename T>
@@ -276,6 +279,21 @@ namespace cppmatrix {
             return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
         else
             throw std::runtime_error("Shape mismatch for dot().");
+    }
+
+    template<typename T>
+    T dot(const ColumnVector<T> &left, const ColumnVector<T> &right) {
+        if (left.N() != right.N())
+            throw std::runtime_error("Shape mismatch for dot().");
+#ifdef CPPMATRIX_USE_OPENMP
+        T sum = 0;
+#pragma omp parallel for reduction(+:sum)
+        for (uint64_t i = 0; i < left.N(); ++i)
+            sum += left(i) * right(i);
+        return sum;
+#else
+        return std::inner_product(left.data(), left.data() + left.N(), right.data(), T(0));
+#endif
     }
 
     template<typename T>

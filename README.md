@@ -40,3 +40,8 @@ is designed with template metaprogramming for type safety and BLAS integration f
 
 The library uses BLAS for optimized operations on float and double types, providing high-performance linear algebra
 computations. For other types, it falls back to efficient C++ implementations.
+
+## OpenMP
+
+OpenMP is required and enabled by default. Ensure your toolchain provides OpenMP support. On macOS with Homebrew LLVM,
+install `libomp` and configure via `brew install libomp`; CMake already links `OpenMP::OpenMP_CXX`.
