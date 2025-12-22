@@ -16,7 +16,6 @@
 #include "function.h"
 
 namespace cppmatrix {
-    // Defines a base rootfinding with defined precision and multiple outputs
     template<typename P, typename I>
     class BaseRootFind {
     public:
@@ -37,18 +36,24 @@ namespace cppmatrix {
         uint64_t _n;
     };
 
-    // Newton rootfinding algorithm for real functions
     template<IsRealFunction F>
-    class Newton final : public BaseRootFind<PrecisionT<F>, InputT<F> > {
+    class Newton final : public BaseRootFind<PrecisionT < F>, InputT<F>>   {
     public:
         Newton(const F &f, const PrecisionT<F> &precision, const uint64_t &n)
-            : BaseRootFind<PrecisionT<F>, InputT<F> >(precision, n) {
+            : BaseRootFind<PrecisionT < F>, InputT<F>
+
+        >
+        (precision
+        ,
+        n
+        )
+ {
             this->_f = f;
         }
 
         InputT<F> run(const InputT<F> &x0) override {
-            InputT<F> x = x0;
-            InputT<F> x_new;
+            InputT < F > x = x0;
+            InputT < F > x_new;
 
             for (uint64_t N = 0; N < this->n(); N++) {
                 x_new = x - this->_f(x) / this->_f.d1(x);
@@ -66,22 +71,28 @@ namespace cppmatrix {
         F _f;
     };
 
-    // Rootfinding for scalar fields using Polyak's method
     template<IsScalarField F>
-    class Polyak final : public BaseRootFind<PrecisionT<F>, InputT<F> > {
+    class Polyak final : public BaseRootFind<PrecisionT < F>, InputT<F>>   {
     public:
         Polyak(const F &f, const PrecisionT<F> &precision, const uint64_t &n)
-            : BaseRootFind<PrecisionT<F>, InputT<F> >(precision, n) {
+            : BaseRootFind<PrecisionT < F>, InputT<F>
+
+        >
+        (precision
+        ,
+        n
+        )
+ {
             this->_f = f;
         }
 
         InputT<F> run(const InputT<F> &x0) override {
-            InputT<F> x(x0);
-            InputT<F> x_new(x0);
+            InputT < F > x(x0);
+            InputT < F > x_new(x0);
 
             for (uint64_t N = 0; N < this->n(); N++) {
                 auto d1 = this->_f.d1(x);
-                auto norm_d1 = invqnorm(this->_f.d1(x)) * d1;
+                auto norm_d1 = inverse_squared_norm(this->_f.d1(x)) * d1;
 
                 x_new = x - this->_f(x) * norm_d1;
 
@@ -97,6 +108,6 @@ namespace cppmatrix {
     private:
         F _f;
     };
-} // namespace cppmatrix
+}
 
-#endif // NEWTON_H
+#endif

@@ -22,17 +22,17 @@
 #include <cblas.h>
 #include <cmath>
 #include <functional>
+#include <limits>
 #include <stdexcept>
+#include <print>
 
 namespace cppmatrix {
     template<typename T>
     class RowVector final : public Matrix<T> {
     public:
-        // Friend definitions
         template<typename U>
         friend class RowVector;
 
-        // Constructors
         RowVector() : Matrix<T>() {
         };
 
@@ -63,8 +63,8 @@ namespace cppmatrix {
 
         explicit RowVector(const Matrix<T> &M) : Matrix<T>(M) {
             if (M.rows() > 1)
-                throw std::runtime_error("Size mismatch for constructor.");
-            this->_N = M.rows();
+                throw std::runtime_error("Size mismatch for RowVector constructor: matrix must have only one row.");
+            this->_N = M.cols();
         }
 
         RowVector(const RowVector<T> &v) : Matrix<T>(1, v.N()) {
@@ -72,14 +72,12 @@ namespace cppmatrix {
             std::copy(v.data(), v.data() + v.N(), this->data());
         }
 
-        // Access operators
         T &operator()(uint64_t n) { return Matrix<T>::operator()(0, n); }
         const T &operator()(uint64_t n) const { return Matrix<T>::operator()(0, n); }
 
         T &operator[](uint64_t n) { return this->operator()(n); }
         const T &operator[](uint64_t n) const { return this->operator()(n); }
 
-        // Operators: multiplication from the right
         template<typename T2>
         RowVector<T> &operator*=(const T2 &right) {
             std::transform(
@@ -89,23 +87,57 @@ namespace cppmatrix {
         }
 
         template<typename T2>
-        RowVector<T> operator*(const T2 &right) {
-            return RowVector<T>(*this) *= right;
+        RowVector<T> operator*(const T2 &right) const {
+            RowVector<T> result(*this);
+            result *= right;
+            return result;
         }
 
-        // Public API
+        template<typename T2>
+            requires std::is_arithmetic_v<T2>
+        RowVector<T> &operator/=(const T2 &right) {
+            if (right == T2(0))
+                throw std::runtime_error("Division by zero.");
+            std::transform(
+                this->data(), this->data() + this->N(), this->data(),
+                std::bind(std::divides<T>(), std::placeholders::_1, T(right)));
+            return *this;
+        }
+
+        template<typename T2>
+            requires std::is_arithmetic_v<T2>
+        RowVector<T> operator/(const T2 &right) const {
+            RowVector<T> result(*this);
+            result /= right;
+            return result;
+        }
+
+        template<typename T2>
+        bool operator==(const RowVector<T2> &right) const {
+            if (this->N() != right.N())
+                return false;
+            for (uint64_t i = 0; i < this->N(); i++)
+                if (std::abs(this->operator()(i) - T(right(i))) > std::numeric_limits<T>::epsilon())
+                    return false;
+            return true;
+        }
+
+        template<typename T2>
+        bool operator!=(const RowVector<T2> &right) const {
+            return !(*this == right);
+        }
+
         [[nodiscard]] uint64_t N() const override { return this->_N; }
 
     private:
         uint64_t _N = 0;
     };
 
-    // Operators: plus (for different types)
     template<typename T1, typename T2>
-    RowVector<T1> &operator+=(const RowVector<T1> &left,
+    RowVector<T1> &operator+=(RowVector<T1> &left,
                               const RowVector<T2> &right) {
         if (left.N() != right.N()) {
-            throw std::runtime_error("Size mismatch for operator+=().");
+            throw std::runtime_error("Size mismatch for operator+=(): vector sizes must match.");
         }
 
         std::transform(left.data(), left.data() + left.N(), right.data(), left.data(),
@@ -122,7 +154,6 @@ namespace cppmatrix {
         return result;
     }
 
-    // Operators: plus (for scalars)
     template<typename T1, typename T2>
         requires std::is_arithmetic_v<T2>
     RowVector<T1> &operator+=(RowVector<T1> &left, const T2 &right) {
@@ -133,7 +164,7 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
         requires std::is_arithmetic_v<T2>
-    RowVector<T1> operator+(RowVector<T1> &left, const T2 &right) {
+    RowVector<T1> operator+(const RowVector<T1> &left, const T2 &right) {
         auto result = RowVector(left);
         operator+=(result, right);
 
@@ -142,18 +173,17 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
         requires std::is_arithmetic_v<T1>
-    RowVector<T2> operator+(const T1 &left, RowVector<T2> &right) {
-        auto result = Matrix(right);
+    RowVector<T2> operator+(const T1 &left, const RowVector<T2> &right) {
+        auto result = RowVector(right);
         operator+=(result, left);
 
         return result;
     }
 
-    // Operators: minus (for different types)
     template<typename T1, typename T2>
     RowVector<T1> &operator-=(RowVector<T1> &left, const RowVector<T2> &right) {
         if (left.N() != right.N()) {
-            throw std::runtime_error("Size mismatch for operator-=().");
+            throw std::runtime_error("Size mismatch for operator-=(): vector sizes must match.");
         }
 
         std::transform(left.data(), left.data() + left.N(), right.data(), left.data(),
@@ -170,18 +200,17 @@ namespace cppmatrix {
         return result;
     }
 
-    // Operators: minus (for scalars)
     template<typename T1, typename T2>
         requires std::is_arithmetic_v<T2>
     RowVector<T1> &operator-=(RowVector<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
-                       [right](T2 element) { return element - right; });
+                       [right](T1 element) { return element - T1(right); });
         return left;
     }
 
     template<typename T1, typename T2>
         requires std::is_arithmetic_v<T2>
-    RowVector<T1> operator-(RowVector<T1> &left, const T2 &right) {
+    RowVector<T1> operator-(const RowVector<T1> &left, const T2 &right) {
         auto result = RowVector(left);
         operator-=(result, right);
 
@@ -190,22 +219,19 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
         requires std::is_arithmetic_v<T1>
-    RowVector<T2> operator-(const T1 &left, RowVector<T2> &right) {
-        auto result = RowVector(right) * -1.0;
-        operator+=(result, left);
+    RowVector<T2> operator-(const T1 &left, const RowVector<T2> &right) {
+        auto result = RowVector(right) * T2(-1.0);
+        operator+=(result, T2(left));
 
         return result;
     }
 
-    // Operators: multiplication from the left
     template<typename T1, typename T2>
         requires std::is_arithmetic_v<T1>
-    RowVector<T2> operator*(const T1 &left, RowVector<T2> &right) {
-        auto new_mult = T2(left);
-        return right * new_mult;
+    RowVector<T2> operator*(const T1 &left, const RowVector<T2> &right) {
+        return right * T2(left);
     }
 
-    // Operators: Matrix-vector multiplication
     inline RowVector<float> operator*(const RowVector<float> &left, const Matrix<float> &right) {
         if (right.rows() != left.N())
             throw std::runtime_error("Size mismatch for operator *().");
@@ -230,7 +256,6 @@ namespace cppmatrix {
         return result;
     }
 
-    // Operators: Vector-vector (dot) multiplication
     inline float dot(const RowVector<float> &left, const RowVector<float> &right) {
         if (left.N() == right.N())
             return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
@@ -249,19 +274,18 @@ namespace cppmatrix {
     T norm(const RowVector<T> &v) { return std::sqrt(dot(v, v)); }
 
     template<typename T>
-    T qnorm(const RowVector<T> &v) { return dot(v, v); }
+    T squared_norm(const RowVector<T> &v) { return dot(v, v); }
 
     template<typename T>
-    T invqnorm(const RowVector<T> &v) { return 1 / dot(v, v); }
+    T inverse_squared_norm(const RowVector<T> &v) { return 1.0 / dot(v, v); }
 
     template<typename T>
     void print(const RowVector<T> &v, const int &precision = 5) {
-
-        for(uint64_t j = 0; j < v.N(); j++) {
+        for (uint64_t j = 0; j < v.N(); j++) {
             std::print("{:.{}} \t", v(j), precision);
         }
         std::print("\n");
     }
-} // namespace cppmatrix
+}
 
 #endif

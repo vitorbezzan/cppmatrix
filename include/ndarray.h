@@ -19,6 +19,7 @@
 #define NDARRAY_H
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <type_traits>
@@ -28,7 +29,6 @@ namespace cppmatrix {
         requires std::is_floating_point_v<T>
     class NDArray {
     public:
-        // Friend definitions
         template<typename U>
             requires std::is_floating_point_v<U>
         friend class NDArray;
@@ -39,17 +39,28 @@ namespace cppmatrix {
         template<typename T1, typename T2>
         friend NDArray<T1> &operator-=(NDArray<T1> &left, const NDArray<T2> &right);
 
-        // Constructors
+        template<typename U1, typename U2>
+            requires std::is_floating_point_v<U1> && std::is_floating_point_v<U2>
+        friend bool operator==(const NDArray<U1> &left, const NDArray<U2> &right);
+
         NDArray() = default;
 
         template<uint64_t ndim>
-        explicit NDArray(const uint64_t (&shape)[ndim]) {
+        explicit NDArray (
+        
+        const uint64_t (&shape)[ndim]
+        )
+ {
             this->_allocate(ndim, shape);
         }
 
         template<uint64_t ndim, typename U>
             requires std::is_floating_point_v<U>
-        NDArray(const uint64_t (&shape)[ndim], U &value) {
+        NDArray (
+        
+        const uint64_t (&shape)[ndim], U &value
+        )
+ {
             this->_allocate(ndim, shape);
             std::fill(this->_data, this->_data + this->N(), T(value));
         }
@@ -70,13 +81,11 @@ namespace cppmatrix {
             std::copy(right._data, right._data + right.N(), this->_data);
         }
 
-        // Virtual destructor
         virtual ~NDArray() {
             delete[] this->_shape;
             delete[] this->_data;
         }
 
-        // Access operator
         template<uint64_t ndim>
         T &operator()(uint64_t (&index)[ndim]) {
             uint64_t _index = 0;
@@ -105,7 +114,6 @@ namespace cppmatrix {
             return _data[_index];
         }
 
-        // Equality operator
         NDArray<T> &operator=(const NDArray<T> &right) {
             if (this != &right) {
                 this->_allocate(right._ndim, right._shape);
@@ -117,7 +125,22 @@ namespace cppmatrix {
             return *this;
         }
 
-        // Operators: multiplication from the right
+        NDArray<T> &operator=(NDArray<T> &&right) noexcept {
+            if (this != &right) {
+                delete[] this->_shape;
+                delete[] this->_data;
+
+                this->_ndim = right._ndim;
+                this->_shape = right._shape;
+                this->_data = right._data;
+
+                right._shape = nullptr;
+                right._data = nullptr;
+            }
+
+            return *this;
+        }
+
         template<typename T2>
         NDArray<T> &operator*=(const T2 &right) {
             std::transform(
@@ -127,11 +150,29 @@ namespace cppmatrix {
         }
 
         template<typename T2>
-        NDArray<T> operator*(const T2 &right) {
-            return NDArray<T>(*this) *= right;
+        NDArray<T> operator*(const T2 &right) const {
+            NDArray<T> result(*this);
+            result *= right;
+            return result;
         }
 
-        // Public API
+        template<typename T2>
+        NDArray<T> &operator/=(const T2 &right) {
+            if (right == T2(0))
+                throw std::runtime_error("Division by zero.");
+            std::transform(
+                this->_data, this->_data + this->N(), this->_data,
+                std::bind(std::divides<T>(), std::placeholders::_1, T(right)));
+            return *this;
+        }
+
+        template<typename T2>
+        NDArray<T> operator/(const T2 &right) const {
+            NDArray<T> result(*this);
+            result /= right;
+            return result;
+        }
+
         [[nodiscard]] virtual uint64_t N() const {
             uint64_t n = std::accumulate(this->_shape, this->_shape + this->_ndim, 1,
                                          std::multiplies());
@@ -170,7 +211,6 @@ namespace cppmatrix {
         }
     };
 
-    // Operators: plus (for different types)
     template<typename T1, typename T2>
     NDArray<T1> &operator+=(NDArray<T1> &left, const NDArray<T2> &right) {
         if (left.check_sizes(right)) {
@@ -190,7 +230,6 @@ namespace cppmatrix {
         return result;
     }
 
-    // Operators: plus (for scalars)
     template<typename T1, typename T2>
     NDArray<T1> &operator+=(NDArray<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
@@ -200,21 +239,20 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
     NDArray<T1> operator+(const NDArray<T1> &left, const T2 &right) {
-        auto result = NDArray(left);
+        NDArray<T1> result(left);
         operator+=(result, right);
 
         return result;
     }
 
     template<typename T1, typename T2>
-    NDArray<T2> operator+(const T1 &left, NDArray<T2> &right) {
-        auto result = NDArray(right);
-        operator+=(result, left);
+    NDArray<T2> operator+(const T1 &left, const NDArray<T2> &right) {
+        NDArray<T2> result(right);
+        operator+=(result, T2(left));
 
         return result;
     }
 
-    // Operators: minus (for different types)
     template<typename T1, typename T2>
     NDArray<T1> &operator-=(NDArray<T1> &left, const NDArray<T2> &right) {
         if (left.check_sizes(right)) {
@@ -228,23 +266,22 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
     NDArray<T1> operator-(const NDArray<T1> &left, const NDArray<T2> &right) {
-        auto result = NDArray(left);
+        NDArray<T1> result(left);
         operator-=(result, right);
 
         return result;
     }
 
-    // Operators: minus (for scalars)
     template<typename T1, typename T2>
     NDArray<T1> &operator-=(NDArray<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
-                       [right](T1 element) { return element - right; });
+                       [right](T1 element) { return element - T1(right); });
         return left;
     }
 
     template<typename T1, typename T2>
     NDArray<T1> operator-(const NDArray<T1> &left, const T2 &right) {
-        auto result = NDArray(left);
+        NDArray<T1> result(left);
         operator-=(result, right);
 
         return result;
@@ -258,12 +295,27 @@ namespace cppmatrix {
         return result;
     }
 
-    // Operators: multiplication from the left
     template<typename T1, typename T2>
-    NDArray<T2> operator*(const T1 &left, NDArray<T2> &right) {
-        auto new_mult = T2(left);
-        return right * new_mult;
+    NDArray<T2> operator*(const T1 &left, const NDArray<T2> &right) {
+        return right * T2(left);
     }
-} // namespace cppmatrix
+
+    template<typename T1, typename T2>
+        requires std::is_floating_point_v<T1> && std::is_floating_point_v<T2>
+    bool operator==(const NDArray<T1> &left, const NDArray<T2> &right) {
+        if (!left.check_sizes(right))
+            return false;
+        for (uint64_t i = 0; i < left.N(); i++)
+            if (std::abs(left._data[i] - T1(right._data[i])) > std::numeric_limits<T1>::epsilon())
+                return false;
+        return true;
+    }
+
+    template<typename T1, typename T2>
+        requires std::is_floating_point_v<T1> && std::is_floating_point_v<T2>
+    bool operator!=(const NDArray<T1> &left, const NDArray<T2> &right) {
+        return !(left == right);
+    }
+}
 
 #endif

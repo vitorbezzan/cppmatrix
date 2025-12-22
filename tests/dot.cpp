@@ -16,14 +16,6 @@
 
 using namespace cppmatrix;
 
-/**
- * @brief Tests dot product and L2 norm operations for float vectors
- * 
- * Verifies:
- * - Dot product between row and column vectors matches naive implementation
- * - L2 norm calculation matches naive implementation
- * - Uses float precision
- */
 TEST(dot, test_dot_float) {
     auto g = VNormalFill<float>(42, 0.0, 1.0);
 
@@ -42,14 +34,6 @@ TEST(dot, test_dot_float) {
     ASSERT_FLOAT_EQ(l2_norm, l2_norm_naive);
 }
 
-/**
- * @brief Tests dot product and L2 norm operations for double vectors
- * 
- * Verifies:
- * - Dot product between row and column vectors matches naive implementation
- * - L2 norm calculation matches naive implementation
- * - Uses double precision
- */
 TEST(dot, test_dot_double) {
     auto g = VNormalFill<double>(42, 0.0, 1.0);
 

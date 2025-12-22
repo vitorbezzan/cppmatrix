@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cblas.h>
 #include <functional>
+#include <limits>
 #include <stdexcept>
 #include <print>
 
@@ -28,11 +29,9 @@ namespace cppmatrix {
     template<typename T>
     class Matrix : public NDArray<T> {
     public:
-        // Friend definitions
         template<typename U>
         friend class Matrix;
 
-        // Constructors
         Matrix() : NDArray<T>() {
         };
 
@@ -48,7 +47,6 @@ namespace cppmatrix {
             this->_cols = cols;
         }
 
-        // Constructor for fill function
         Matrix(const uint64_t &rows, const uint64_t &cols,
                T (*f)(const uint64_t &, const uint64_t &))
             : NDArray<T>({rows, cols}) {
@@ -60,7 +58,6 @@ namespace cppmatrix {
                     this->operator()(row, col) = f(row, col);
         }
 
-        // Constructor for fill function
         Matrix(const uint64_t &rows, const uint64_t &cols,
                const std::function<T(const uint64_t &, const uint64_t &)> &f)
             : NDArray<T>({rows, cols}) {
@@ -77,6 +74,13 @@ namespace cppmatrix {
             this->_cols = M._cols;
         }
 
+        Matrix(Matrix<T> &&M) noexcept : NDArray<T>(std::move(M)) {
+            this->_rows = M._rows;
+            this->_cols = M._cols;
+            M._rows = 0;
+            M._cols = 0;
+        }
+
         explicit Matrix(const NDArray<T> &base) : NDArray<T>(base) {
             if (base.ndim() != 2)
                 throw std::runtime_error("Dimension size mismatch for constructor.");
@@ -85,7 +89,6 @@ namespace cppmatrix {
             this->_cols = base.shape()[1];
         }
 
-        // Access operator
         T &operator()(uint64_t row, uint64_t col) {
             uint64_t index[2] = {row, col};
             return NDArray<T>::operator()(index);
@@ -96,7 +99,6 @@ namespace cppmatrix {
             return NDArray<T>::operator()(index);
         }
 
-        // Operators: multiplication from the right
         template<typename T2>
             requires std::is_floating_point_v<T2>
         Matrix<T> &operator*=(const T2 &right) {
@@ -108,11 +110,66 @@ namespace cppmatrix {
 
         template<typename T2>
             requires std::is_floating_point_v<T2>
-        Matrix<T> operator*(const T2 &right) {
+        Matrix<T> operator*(const T2 &right) const {
             return Matrix<T>(*this) *= right;
         }
 
-        // Helpers
+        // Operators: division from the right
+        template<typename T2>
+            requires std::is_floating_point_v<T2>
+        Matrix<T> &operator/=(const T2 &right) {
+            if (right == T2(0))
+                throw std::runtime_error("Division by zero.");
+            std::transform(
+                this->data(), this->data() + this->N(), this->data(),
+                std::bind(std::divides<T>(), std::placeholders::_1, T(right)));
+            return *this;
+        }
+
+        template<typename T2>
+            requires std::is_floating_point_v<T2>
+        Matrix<T> operator/(const T2 &right) const {
+            Matrix<T> result(*this);
+            result /= right;
+            return result;
+        }
+
+        template<typename T2>
+        bool operator==(const Matrix<T2> &right) const {
+            if (this->rows() != right.rows() || this->cols() != right.cols())
+                return false;
+            for (uint64_t i = 0; i < this->rows(); i++)
+                for (uint64_t j = 0; j < this->cols(); j++)
+                    if (std::abs(this->operator()(i, j) - T(right(i, j))) > std::numeric_limits<T>::epsilon())
+                        return false;
+            return true;
+        }
+
+        template<typename T2>
+        bool operator!=(const Matrix<T2> &right) const {
+            return !(*this == right);
+        }
+
+        Matrix<T> &operator=(const Matrix<T> &right) {
+            if (this != &right) {
+                NDArray<T>::operator=(right);
+                this->_rows = right._rows;
+                this->_cols = right._cols;
+            }
+            return *this;
+        }
+
+        Matrix<T> &operator=(Matrix<T> &&right) noexcept {
+            if (this != &right) {
+                NDArray<T>::operator=(std::move(right));
+                this->_rows = right._rows;
+                this->_cols = right._cols;
+                right._rows = 0;
+                right._cols = 0;
+            }
+            return *this;
+        }
+
         [[nodiscard]] uint64_t rows() const { return _rows; }
         [[nodiscard]] uint64_t cols() const { return _cols; }
 
@@ -121,11 +178,10 @@ namespace cppmatrix {
         uint64_t _cols = 0;
     };
 
-    // Operators: plus (for different types)
     template<typename T1, typename T2>
     Matrix<T1> &operator+=(Matrix<T1> &left, const Matrix<T2> &right) {
         if ((left.cols() != right.cols()) | (left.rows() != right.rows())) {
-            throw std::runtime_error("Size mismatch for operator+=().");
+            throw std::runtime_error("Size mismatch for operator+=(): matrix dimensions must match.");
         }
 
         std::transform(left.data(), left.data() + left.N(), right.data(), left.data(),
@@ -142,18 +198,17 @@ namespace cppmatrix {
         return result;
     }
 
-    // Operators: plus (for scalars)
     template<typename T1, typename T2>
     Matrix<T1> &operator+=(Matrix<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
-                       [right](T2 element) { return element + right; });
+                       [right](T1 element) { return element + T1(right); });
         return left;
     }
 
     template<typename T1, typename T2>
         requires std::is_floating_point_v<T2>
-    Matrix<T1> operator+(Matrix<T1> &left, const T2 &right) {
-        auto result = Matrix(left);
+    Matrix<T1> operator+(const Matrix<T1> &left, const T2 &right) {
+        Matrix<T1> result(left);
         operator+=(result, right);
 
         return result;
@@ -161,18 +216,17 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
         requires std::is_floating_point_v<T1>
-    Matrix<T2> operator+(const T1 &left, Matrix<T2> &right) {
-        auto result = Matrix(right);
-        operator+=(result, left);
+    Matrix<T2> operator+(const T1 &left, const Matrix<T2> &right) {
+        Matrix<T2> result(right);
+        operator+=(result, T2(left));
 
         return result;
     }
 
-    // Operators: minus (for different types)
     template<typename T1, typename T2>
     Matrix<T1> &operator-=(Matrix<T1> &left, const Matrix<T2> &right) {
         if ((left.cols() != right.cols()) | (left.rows() != right.rows())) {
-            throw std::runtime_error("Size mismatch for operator-=().");
+            throw std::runtime_error("Size mismatch for operator-=(): matrix dimensions must match.");
         }
 
         std::transform(left.data(), left.data() + left.N(), right.data(), left.data(),
@@ -183,24 +237,23 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
     Matrix<T1> operator-(const Matrix<T1> &left, const Matrix<T2> &right) {
-        auto result = Matrix(left);
+        Matrix<T1> result(left);
         operator-=(result, right);
 
         return result;
     }
 
-    // Operators: minus (for scalars)
     template<typename T1, typename T2>
     Matrix<T1> &operator-=(Matrix<T1> &left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
-                       [right](T2 element) { return element - right; });
+                       [right](T1 element) { return element - T1(right); });
         return left;
     }
 
     template<typename T1, typename T2>
         requires std::is_floating_point_v<T2>
-    Matrix<T1> operator-(Matrix<T1> &left, const T2 &right) {
-        auto result = Matrix(left);
+    Matrix<T1> operator-(const Matrix<T1> &left, const T2 &right) {
+        Matrix<T1> result(left);
         operator-=(result, right);
 
         return result;
@@ -208,33 +261,34 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
         requires std::is_floating_point_v<T1>
-    Matrix<T2> operator-(const T1 &left, Matrix<T2> &right) {
-        auto result = Matrix(right) * -1.0;
-        operator+=(result, left);
+    Matrix<T2> operator-(const T1 &left, const Matrix<T2> &right) {
+        Matrix<T2> result(right);
+        result *= T2(-1.0);
+        operator+=(result, T2(left));
 
         return result;
     }
 
-    // Operators: multiplication from the left
     template<typename T1, typename T2>
         requires std::is_floating_point_v<T1>
-    Matrix<T2> operator*(const T1 &left, Matrix<T2> &right) {
-        auto new_mult = T2(left);
-        return right * new_mult;
+    Matrix<T2> operator*(const T1 &left, const Matrix<T2> &right) {
+        return right * T2(left);
     }
 
-    // Operators: Matrix multiplication
-    template<typename T1, typename T2>
-    Matrix<T1> check_shape(const Matrix<T1> &left, const Matrix<T2> &right) {
-        if (left.cols() != right.rows())
-            throw std::runtime_error("Shape mismatch for check_shape().");
+    namespace detail {
+        template<typename T1, typename T2>
+        Matrix<T1> create_result_matrix(const Matrix<T1> &left, const Matrix<T2> &right) {
+            if (left.cols() != right.rows())
+                throw std::runtime_error(
+                    "Shape mismatch for matrix multiplication: left columns must equal right rows.");
 
-        return Matrix<T1>(left.rows(), right.cols());
+            return Matrix<T1>(left.rows(), right.cols(), T1(0));
+        }
     }
 
     template<typename T1, typename T2>
-    Matrix<T1> naive_multiply(Matrix<T1> &left, Matrix<T2> &right) {
-        auto C = check_shape(left, right);
+    Matrix<T1> multiply_naive(const Matrix<T1> &left, const Matrix<T2> &right) {
+        auto C = detail::create_result_matrix(left, right);
 
         for (uint64_t i = 0; i < left.rows(); i++)
             for (uint64_t j = 0; j < right.cols(); j++)
@@ -245,7 +299,7 @@ namespace cppmatrix {
     }
 
     inline Matrix<float> operator*(const Matrix<float> &left, const Matrix<float> &right) {
-        Matrix<float> C = check_shape(left, right);
+        Matrix<float> C = detail::create_result_matrix(left, right);
         cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, C.rows(), C.cols(),
                     left.cols(), 1.0, left.data(), left.cols(), right.data(),
                     right.cols(), 0.0, C.data(), C.cols());
@@ -254,7 +308,7 @@ namespace cppmatrix {
     }
 
     inline Matrix<double> operator*(const Matrix<double> &left, const Matrix<double> &right) {
-        Matrix<double> C = check_shape(left, right);
+        Matrix<double> C = detail::create_result_matrix(left, right);
         cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, C.rows(), C.cols(),
                     left.cols(), 1.0, left.data(), left.cols(), right.data(),
                     right.cols(), 0.0, C.data(), C.cols());
@@ -264,15 +318,13 @@ namespace cppmatrix {
 
     template<typename T>
     void print(const Matrix<T> &M, const int &precision = 5) {
-
-        for(uint64_t i = 0; i < M.rows(); i++) {
+        for (uint64_t i = 0; i < M.rows(); i++) {
             for (uint64_t j = 0; j < M.cols(); j++) {
                 std::print("{:.{}} \t", M(i, j), precision);
             }
             std::print("\n");
         }
     }
-
-} // namespace cppmatrix
+}
 
 #endif

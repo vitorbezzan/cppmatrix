@@ -16,7 +16,6 @@
 #include <random>
 
 namespace cppmatrix {
-    // Some direct filler functions and classes (Matrix)
     template<typename T>
     T identity(const uint64_t &i, const uint64_t &j) {
         if (i == j)
@@ -35,7 +34,6 @@ namespace cppmatrix {
         return T(1);
     }
 
-    // Base for complex fill (Matrix)
     template<typename T>
     class BaseFill {
     public:
@@ -46,7 +44,6 @@ namespace cppmatrix {
         }
     };
 
-    // Base for complex fill (Vectors)
     template<typename T>
     class VBaseFill {
     public:
@@ -57,7 +54,6 @@ namespace cppmatrix {
         }
     };
 
-    // Complex fill: random [0,1] (Matrix)
     template<typename T>
     class BaseRandomFill : BaseFill<T> {
     public:
@@ -72,7 +68,6 @@ namespace cppmatrix {
         std::mt19937_64 _rng;
     };
 
-    // Complex fill: Normal(mean, std) (Matrix)
     template<typename T>
     class NormalFill : BaseRandomFill<T> {
     public:
@@ -92,7 +87,6 @@ namespace cppmatrix {
         T _std;
     };
 
-    // Complex fill: random [0,1] (Vector)
     template<typename T>
     class VBaseRandomFill : VBaseFill<T> {
     public:
@@ -107,7 +101,6 @@ namespace cppmatrix {
         std::mt19937_64 _rng;
     };
 
-    // Complex fill: Normal(mean, std) (Vector)
     template<typename T>
     class VNormalFill : VBaseRandomFill<T> {
     public:
@@ -126,6 +119,6 @@ namespace cppmatrix {
         T _mean;
         T _std;
     };
-} // namespace cppmatrix
+}
 
-#endif // FILLERS_H
+#endif

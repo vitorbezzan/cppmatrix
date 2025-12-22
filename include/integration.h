@@ -16,7 +16,6 @@
 #include <functional>
 
 namespace cppmatrix {
-    // Defines a base 1D integrator using Rectangle rule with defined precision and multiple outputs.
     template<typename P = float, typename I = float>
     class Base1DIntegrator {
     public:
@@ -49,7 +48,6 @@ namespace cppmatrix {
         uint64_t _n;
     };
 
-    // Defines a 1D integrator using the trapezoidal rule.
     template<typename P = float, typename I = float>
     class Trapezoidal1DIntegrator final : public Base1DIntegrator<P, I> {
     public:
@@ -69,7 +67,6 @@ namespace cppmatrix {
         }
     };
 
-    // Defines a 1D integrator using Simpson's rule.
     template<typename P = float, typename I = float>
     class Simpson1DIntegrator final : public Base1DIntegrator<P, I> {
     public:
