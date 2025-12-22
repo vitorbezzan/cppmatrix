@@ -173,10 +173,38 @@ namespace cppmatrix {
         [[nodiscard]] uint64_t rows() const { return _rows; }
         [[nodiscard]] uint64_t cols() const { return _cols; }
 
+        [[nodiscard]] Matrix<T> transpose() const {
+            Matrix<T> result(this->_cols, this->_rows);
+
+            constexpr uint64_t BLOCK_SIZE = 32;
+            const uint64_t rows = this->_rows;
+            const uint64_t cols = this->_cols;
+
+            for (uint64_t i0 = 0; i0 < rows; i0 += BLOCK_SIZE) {
+                const uint64_t i_max = std::min(rows, i0 + BLOCK_SIZE);
+                for (uint64_t j0 = 0; j0 < cols; j0 += BLOCK_SIZE) {
+                    const uint64_t j_max = std::min(cols, j0 + BLOCK_SIZE);
+
+                    for (uint64_t i = i0; i < i_max; ++i) {
+                        for (uint64_t j = j0; j < j_max; ++j) {
+                            result(j, i) = this->operator()(i, j);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
     private:
         uint64_t _rows = 0;
         uint64_t _cols = 0;
     };
+
+    template<typename T>
+    Matrix<T> transpose(const Matrix<T> &M) {
+        return M.transpose();
+    }
 
     template<typename T1, typename T2>
     Matrix<T1> &operator+=(Matrix<T1> &left, const Matrix<T2> &right) {

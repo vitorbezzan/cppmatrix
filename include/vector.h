@@ -20,6 +20,32 @@
 #include "row_vector.h"
 
 namespace cppmatrix {
+    template<typename T>
+    RowVector<T> ColumnVector<T>::transpose() const {
+        RowVector<T> result(this->N());
+        for (uint64_t i = 0; i < this->N(); ++i)
+            result(i) = this->operator()(i);
+        return result;
+    }
+
+    template<typename T>
+    ColumnVector<T> RowVector<T>::transpose() const {
+        ColumnVector<T> result(this->N());
+        for (uint64_t i = 0; i < this->N(); ++i)
+            result(i) = this->operator()(i);
+        return result;
+    }
+
+    template<typename T>
+    RowVector<T> transpose(const ColumnVector<T> &v) {
+        return v.transpose();
+    }
+
+    template<typename T>
+    ColumnVector<T> transpose(const RowVector<T> &v) {
+        return v.transpose();
+    }
+
     template<typename T1, typename T2>
     T1 dot(const RowVector<T1> &left, const ColumnVector<T2> &right) {
         if (left.N() == right.N())

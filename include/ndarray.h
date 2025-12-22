@@ -46,21 +46,19 @@ namespace cppmatrix {
         NDArray() = default;
 
         template<uint64_t ndim>
-        explicit NDArray (
-        
-        const uint64_t (&shape)[ndim]
-        )
- {
+        explicit NDArray(
+
+            const uint64_t (&shape)[ndim]
+        ) {
             this->_allocate(ndim, shape);
         }
 
         template<uint64_t ndim, typename U>
             requires std::is_floating_point_v<U>
-        NDArray (
-        
-        const uint64_t (&shape)[ndim], U &value
-        )
- {
+        NDArray(
+
+            const uint64_t (&shape)[ndim], U &value
+        ) {
             this->_allocate(ndim, shape);
             std::fill(this->_data, this->_data + this->N(), T(value));
         }

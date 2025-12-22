@@ -27,6 +27,9 @@
 
 namespace cppmatrix {
     template<typename T>
+    class RowVector;
+
+    template<typename T>
     class ColumnVector final : public Matrix<T> {
     public:
         template<typename U>
@@ -72,6 +75,8 @@ namespace cppmatrix {
             this->_N = v.N();
             std::copy(v.data(), v.data() + v.N(), this->data());
         }
+
+        [[nodiscard]] RowVector<T> transpose() const;
 
         T &operator()(uint64_t n) { return Matrix<T>::operator()(n, 0); }
         const T &operator()(uint64_t n) const { return Matrix<T>::operator()(n, 0); }
