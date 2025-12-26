@@ -1,13 +1,49 @@
-cmake_minimum_required(VERSION 3.31.4)
+cmake_minimum_required(VERSION 4.2.1)
 
 project(cppmatrix LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Prefer Release by default and allow LTO/native tuning
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
+option(CPPMATRIX_ENABLE_LTO "Enable IPO/LTO when available" ON)
+option(CPPMATRIX_NATIVE_OPTIMIZATIONS "Enable -march=native on Release builds" ON)
+option(CPPMATRIX_USE_ACCELERATE "Prefer Apple Accelerate over OpenBLAS when available" OFF)
+option(CPPMATRIX_VECTORIZE_REPORT "Enable clang vectorization diagnostics" OFF)
+
+if(CPPMATRIX_ENABLE_LTO)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT ipo_supported OUTPUT ipo_output)
+    if(ipo_supported)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+        message(STATUS "IPO/LTO not supported: ${ipo_output}")
+    endif()
+endif()
+
+if(CPPMATRIX_NATIVE_OPTIMIZATIONS)
+    add_compile_options(
+            $<$<CONFIG:Release>:-O3>
+            $<$<CONFIG:Release>:-march=native>
+            $<$<CONFIG:Release>:-DNDEBUG>
+            $<$<AND:$<CONFIG:Release>,$<BOOL:${CPPMATRIX_VECTORIZE_REPORT}>>:-Rpass=loop-vectorize>
+            $<$<AND:$<CONFIG:Release>,$<BOOL:${CPPMATRIX_VECTORIZE_REPORT}>>:-Rpass-missed=loop-vectorize>
+    )
+else()
+    add_compile_options(
+            $<$<CONFIG:Release>:-O3>
+            $<$<CONFIG:Release>:-DNDEBUG>
+            $<$<AND:$<CONFIG:Release>,$<BOOL:${CPPMATRIX_VECTORIZE_REPORT}>>:-Rpass=loop-vectorize>
+            $<$<AND:$<CONFIG:Release>,$<BOOL:${CPPMATRIX_VECTORIZE_REPORT}>>:-Rpass-missed=loop-vectorize>
+    )
+endif()
+
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 0)
-set(VERSION_FEATURE 1)
+set(VERSION_FEATURE 2)
 set(VERSION_PATCH 0)
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}")
 set(VERSION "${VERSION}.${VERSION_FEATURE}.${VERSION_PATCH}")
@@ -46,8 +82,18 @@ if (APPLE)
     set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH FALSE)
 
     find_package(GTest REQUIRED)
-    find_package(BLAS REQUIRED)
-    find_package(LAPACK REQUIRED)
+    if(CPPMATRIX_USE_ACCELERATE)
+        find_library(ACCELERATE_FRAMEWORK Accelerate)
+        if(ACCELERATE_FRAMEWORK)
+            set(BLAS_LIBRARIES ${ACCELERATE_FRAMEWORK})
+            set(LAPACK_LIBRARIES "")
+            message(STATUS "Using Accelerate framework for BLAS")
+        endif()
+    endif()
+    if(NOT ACCELERATE_FRAMEWORK)
+        find_package(BLAS REQUIRED)
+        find_package(LAPACK REQUIRED)
+    endif()
     find_package(OpenMP REQUIRED)
 
 elseif (UNIX)

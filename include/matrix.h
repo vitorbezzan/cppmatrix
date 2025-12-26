@@ -28,6 +28,16 @@
 #include <omp.h>
 #endif
 
+#ifndef CPPMATRIX_RESTRICT
+#if defined(__clang__) || defined(__GNUC__)
+#define CPPMATRIX_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#define CPPMATRIX_RESTRICT __restrict
+#else
+#define CPPMATRIX_RESTRICT
+#endif
+#endif
+
 namespace cppmatrix {
     template<typename T>
     class Matrix : public NDArray<T> {
@@ -324,13 +334,29 @@ namespace cppmatrix {
     Matrix<T1> multiply_naive(const Matrix<T1> &left, const Matrix<T2> &right) {
         auto C = detail::create_result_matrix(left, right);
 
+        const uint64_t m = left.rows();
+        const uint64_t n = right.cols();
+        const uint64_t kdim = left.cols();
+
+        T1 * CPPMATRIX_RESTRICT cptr = C.data();
+        const T1 * CPPMATRIX_RESTRICT lptr = left.data();
+        const T2 * CPPMATRIX_RESTRICT rptr = right.data();
+
 #ifdef CPPMATRIX_USE_OPENMP
 #pragma omp parallel for collapse(2)
 #endif
-        for (uint64_t i = 0; i < left.rows(); i++)
-            for (uint64_t j = 0; j < right.cols(); j++)
-                for (uint64_t k = 0; k < left.cols(); k++)
-                    C(i, j) += left(i, k) * right(k, j);
+        for (uint64_t i = 0; i < m; i++)
+            for (uint64_t j = 0; j < n; j++) {
+                const T1 * CPPMATRIX_RESTRICT row = lptr + i * kdim;
+                const T2 * CPPMATRIX_RESTRICT col = rptr + j;
+                T1 acc = 0;
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp simd reduction(+:acc)
+#endif
+                for (uint64_t k = 0; k < kdim; k++)
+                    acc += row[k] * T1(col[k * n]);
+                cptr[i * n + j] = acc;
+            }
 
         return C;
     }

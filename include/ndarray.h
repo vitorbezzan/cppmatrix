@@ -23,8 +23,20 @@
 #include <numeric>
 #include <stdexcept>
 #include <type_traits>
+#include <new>
+#include <cstddef>
 #ifdef CPPMATRIX_USE_OPENMP
 #include <omp.h>
+#endif
+
+#ifndef CPPMATRIX_RESTRICT
+#if defined(__clang__) || defined(__GNUC__)
+#define CPPMATRIX_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#define CPPMATRIX_RESTRICT __restrict
+#else
+#define CPPMATRIX_RESTRICT
+#endif
 #endif
 
 namespace cppmatrix {
@@ -88,7 +100,8 @@ namespace cppmatrix {
 
         virtual ~NDArray() {
             delete[] this->_shape;
-            delete[] this->_data;
+            if (this->_data)
+                ::operator delete[](this->_data, std::align_val_t(kAlignment));
         }
 
         template<uint64_t ndim>
@@ -133,7 +146,8 @@ namespace cppmatrix {
         NDArray<T> &operator=(NDArray<T> &&right) noexcept {
             if (this != &right) {
                 delete[] this->_shape;
-                delete[] this->_data;
+                if (this->_data)
+                    ::operator delete[](this->_data, std::align_val_t(kAlignment));
 
                 this->_ndim = right._ndim;
                 this->_shape = right._shape;
@@ -149,7 +163,7 @@ namespace cppmatrix {
         template<typename T2>
         NDArray<T> &operator*=(const T2 &right) {
 #ifdef CPPMATRIX_USE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for simd
 #endif
             for (uint64_t idx = 0; idx < this->N(); ++idx)
                 this->_data[idx] = std::multiplies<T>()(this->_data[idx], T(right));
@@ -168,7 +182,7 @@ namespace cppmatrix {
             if (right == T2(0))
                 throw std::runtime_error("Division by zero.");
 #ifdef CPPMATRIX_USE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for simd
 #endif
             for (uint64_t idx = 0; idx < this->N(); ++idx)
                 this->_data[idx] = std::divides<T>()(this->_data[idx], T(right));
@@ -204,27 +218,32 @@ namespace cppmatrix {
         }
 
     private:
+        static constexpr std::size_t kAlignment = 64;
         uint64_t _ndim = 0;
         uint64_t *_shape = nullptr;
-        T *_data = nullptr;
+        T *CPPMATRIX_RESTRICT _data = nullptr;
 
         void _allocate(const uint64_t &ndim, const uint64_t *shape) {
             delete[] this->_shape;
-            delete[] this->_data;
+            if (this->_data)
+                ::operator delete[](this->_data, std::align_val_t(kAlignment));
 
             this->_ndim = ndim;
             this->_shape = new uint64_t[ndim];
 
             std::copy(shape, shape + ndim, this->_shape);
-            this->_data = new T[this->N()];
+            this->_data = static_cast<T *>(::operator new[](this->N() * sizeof(T), std::align_val_t(kAlignment)));
         }
     };
 
     template<typename T1, typename T2>
     NDArray<T1> &operator+=(NDArray<T1> &left, const NDArray<T2> &right) {
         if (left.check_sizes(right)) {
-            std::transform(left._data, left._data + left.N(), right._data, left._data,
-                           std::plus<T1>());
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for simd
+#endif
+            for (uint64_t idx = 0; idx < left.N(); ++idx)
+                left._data[idx] = std::plus<T1>()(left._data[idx], T1(right._data[idx]));
             return left;
         }
 
@@ -241,8 +260,11 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
     NDArray<T1> &operator+=(NDArray<T1> &left, const T2 &right) {
-        std::transform(left.data(), left.data() + left.N(), left.data(),
-                       [right](T1 element) { return element + right; });
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for simd
+#endif
+        for (uint64_t idx = 0; idx < left.N(); ++idx)
+            left._data[idx] = std::plus<T1>()(left._data[idx], T1(right));
         return left;
     }
 
@@ -265,8 +287,11 @@ namespace cppmatrix {
     template<typename T1, typename T2>
     NDArray<T1> &operator-=(NDArray<T1> &left, const NDArray<T2> &right) {
         if (left.check_sizes(right)) {
-            std::transform(left._data, left._data + left.N(), right._data, left._data,
-                           std::minus<T1>());
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for simd
+#endif
+            for (uint64_t idx = 0; idx < left.N(); ++idx)
+                left._data[idx] = std::minus<T1>()(left._data[idx], T1(right._data[idx]));
             return left;
         }
 
@@ -283,8 +308,11 @@ namespace cppmatrix {
 
     template<typename T1, typename T2>
     NDArray<T1> &operator-=(NDArray<T1> &left, const T2 &right) {
-        std::transform(left.data(), left.data() + left.N(), left.data(),
-                       [right](T1 element) { return element - T1(right); });
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for simd
+#endif
+        for (uint64_t idx = 0; idx < left.N(); ++idx)
+            left._data[idx] = std::minus<T1>()(left._data[idx], T1(right));
         return left;
     }
 
@@ -328,3 +356,6 @@ namespace cppmatrix {
 }
 
 #endif
+
+
+
