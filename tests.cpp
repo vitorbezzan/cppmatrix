@@ -1,3 +1,4 @@
+#include "tests/batch_operations.cpp"
 #include "tests/dot.cpp"
 #include "tests/integration.cpp"
 #include "tests/matrix.cpp"

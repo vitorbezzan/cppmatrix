@@ -23,25 +23,41 @@
 #endif
 
 namespace cppmatrix {
+    constexpr uint64_t VECTOR_PARALLEL_THRESHOLD = 10000;
+
     template<typename T>
     RowVector<T> ColumnVector<T>::transpose() const {
         RowVector<T> result(this->N());
+        const uint64_t n = this->N();
+
 #ifdef CPPMATRIX_USE_OPENMP
+        if (n >= VECTOR_PARALLEL_THRESHOLD) {
 #pragma omp parallel for
+            for (uint64_t i = 0; i < n; ++i)
+                result(i) = this->operator()(i);
+        } else
 #endif
-        for (uint64_t i = 0; i < this->N(); ++i)
-            result(i) = this->operator()(i);
+        {
+            std::copy(this->data(), this->data() + n, result.data());
+        }
         return result;
     }
 
     template<typename T>
     ColumnVector<T> RowVector<T>::transpose() const {
         ColumnVector<T> result(this->N());
+        const uint64_t n = this->N();
+
 #ifdef CPPMATRIX_USE_OPENMP
+        if (n >= VECTOR_PARALLEL_THRESHOLD) {
 #pragma omp parallel for
+            for (uint64_t i = 0; i < n; ++i)
+                result(i) = this->operator()(i);
+        } else
 #endif
-        for (uint64_t i = 0; i < this->N(); ++i)
-            result(i) = this->operator()(i);
+        {
+            std::copy(this->data(), this->data() + n, result.data());
+        }
         return result;
     }
 

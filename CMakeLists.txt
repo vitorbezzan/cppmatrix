@@ -1,9 +1,19 @@
+# Preamble
 cmake_minimum_required(VERSION 4.2.1)
 
 project(cppmatrix LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Versioning scheme
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 0)
+set(VERSION_FEATURE 2)
+set(VERSION_PATCH 0)
+set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}")
+set(VERSION "${VERSION}.${VERSION_FEATURE}.${VERSION_PATCH}")
+
 
 # Prefer Release by default and allow LTO/native tuning
 if(NOT CMAKE_BUILD_TYPE)
@@ -13,6 +23,8 @@ option(CPPMATRIX_ENABLE_LTO "Enable IPO/LTO when available" ON)
 option(CPPMATRIX_NATIVE_OPTIMIZATIONS "Enable -march=native on Release builds" ON)
 option(CPPMATRIX_USE_ACCELERATE "Prefer Apple Accelerate over OpenBLAS when available" OFF)
 option(CPPMATRIX_VECTORIZE_REPORT "Enable clang vectorization diagnostics" OFF)
+option(CPPMATRIX_USE_MEMORY_POOL "Enable thread-local memory pooling for small matrices" ON)
+option(CPPMATRIX_FAST_MATH "Enable -ffast-math for aggressive floating-point optimizations" OFF)
 
 if(CPPMATRIX_ENABLE_LTO)
     include(CheckIPOSupported)
@@ -41,13 +53,24 @@ else()
     )
 endif()
 
-set(VERSION_MAJOR 0)
-set(VERSION_MINOR 0)
-set(VERSION_FEATURE 2)
-set(VERSION_PATCH 0)
-set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}")
-set(VERSION "${VERSION}.${VERSION_FEATURE}.${VERSION_PATCH}")
+# Additional performance optimizations
+if(CPPMATRIX_FAST_MATH)
+    add_compile_options(
+            $<$<CONFIG:Release>:-ffast-math>
+            $<$<CONFIG:Release>:-fno-math-errno>
+    )
+    message(STATUS "Fast math enabled - may reduce numerical precision")
+endif()
 
+# Additional vectorization hints
+add_compile_options(
+        $<$<CONFIG:Release>:-funroll-loops>
+        $<$<CONFIG:Release>:-fvectorize>
+        $<$<CONFIG:Release>:-fslp-vectorize>
+)
+
+
+# Build instructions for different platforms
 if (APPLE)
     execute_process(
             COMMAND brew --prefix
@@ -108,3 +131,9 @@ endif ()
 add_executable(run_tests tests.cpp)
 target_link_libraries(run_tests GTest::gtest GTest::gtest_main ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} OpenMP::OpenMP_CXX)
 target_compile_definitions(run_tests PRIVATE CPPMATRIX_USE_OPENMP=1)
+
+# Enable memory pooling if requested
+if(CPPMATRIX_USE_MEMORY_POOL)
+    target_compile_definitions(run_tests PRIVATE CPPMATRIX_USE_MEMORY_POOL=1)
+    message(STATUS "Memory pooling enabled for small matrices")
+endif()

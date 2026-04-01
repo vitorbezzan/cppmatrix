@@ -248,3 +248,17 @@ TEST(NDArray, mult_ndarray_float_double_noref) {
                 EXPECT_FLOAT_EQ(C(index), (value2 * value2) + value1);
             }
 }
+
+TEST(NDArray, sum_shape_mismatch_throws) {
+    double value = 1.0;
+    auto A = NDArray<double>({2, 2, 2}, value);
+    auto B = NDArray<double>({2, 2, 3}, value);
+    EXPECT_THROW(A += B, std::runtime_error);
+}
+
+TEST(NDArray, divide_by_zero_throws) {
+    double value = 1.0;
+    auto A = NDArray<double>({2, 2, 2}, value);
+    EXPECT_THROW(A /= 0.0, std::runtime_error);
+}
+

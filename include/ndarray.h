@@ -63,6 +63,7 @@ namespace cppmatrix {
         template<uint64_t ndim>
         explicit NDArray (
 
+
             
         const uint64_t (&shape)[ndim]
         )
@@ -73,6 +74,7 @@ namespace cppmatrix {
         template<uint64_t ndim, typename U>
             requires std::is_floating_point_v<U>
         NDArray (
+
 
             
         const uint64_t (&shape)[ndim], U &value
@@ -85,21 +87,22 @@ namespace cppmatrix {
         NDArray(NDArray<T> &&right) noexcept {
             this->_ndim = right._ndim;
             this->_shape = right._shape;
+            this->_strides = right._strides;
             this->_data = right._data;
 
             right._shape = nullptr;
+            right._strides = nullptr;
             right._data = nullptr;
         }
 
         NDArray(const NDArray<T> &right) {
             this->_allocate(right._ndim, right._shape);
-
-            std::copy(right._shape, right._shape + right._ndim, this->_shape);
             std::copy(right._data, right._data + right.N(), this->_data);
         }
 
         virtual ~NDArray() {
             delete[] this->_shape;
+            delete[] this->_strides;
             if (this->_data)
                 ::operator delete[](this->_data, std::align_val_t(kAlignment));
         }
@@ -108,13 +111,8 @@ namespace cppmatrix {
         T &operator()(uint64_t (&index)[ndim]) {
             uint64_t _index = 0;
             for (uint64_t i = 0; i < this->_ndim; i++) {
-                uint64_t _product = 1;
-                for (uint64_t j = i + 1; j < this->_ndim; j++) {
-                    _product *= this->_shape[j];
-                }
-                _index += index[i] * _product;
+                _index += index[i] * this->_strides[i];
             }
-
             return _data[_index];
         }
 
@@ -122,21 +120,14 @@ namespace cppmatrix {
         const T &operator()(uint64_t (&index)[ndim]) const {
             uint64_t _index = 0;
             for (uint64_t i = 0; i < this->_ndim; i++) {
-                uint64_t _product = 1;
-                for (uint64_t j = i + 1; j < this->_ndim; j++) {
-                    _product *= this->_shape[j];
-                }
-                _index += index[i] * _product;
+                _index += index[i] * this->_strides[i];
             }
-
             return _data[_index];
         }
 
         NDArray<T> &operator=(const NDArray<T> &right) {
             if (this != &right) {
                 this->_allocate(right._ndim, right._shape);
-
-                std::copy(right._shape, right._shape + right._ndim, this->_shape);
                 std::copy(right._data, right._data + right.N(), this->_data);
             }
 
@@ -146,14 +137,17 @@ namespace cppmatrix {
         NDArray<T> &operator=(NDArray<T> &&right) noexcept {
             if (this != &right) {
                 delete[] this->_shape;
+                delete[] this->_strides;
                 if (this->_data)
                     ::operator delete[](this->_data, std::align_val_t(kAlignment));
 
                 this->_ndim = right._ndim;
                 this->_shape = right._shape;
+                this->_strides = right._strides;
                 this->_data = right._data;
 
                 right._shape = nullptr;
+                right._strides = nullptr;
                 right._data = nullptr;
             }
 
@@ -221,17 +215,28 @@ namespace cppmatrix {
         static constexpr std::size_t kAlignment = 64;
         uint64_t _ndim = 0;
         uint64_t *_shape = nullptr;
+        uint64_t *_strides = nullptr;
         T *CPPMATRIX_RESTRICT _data = nullptr;
 
         void _allocate(const uint64_t &ndim, const uint64_t *shape) {
             delete[] this->_shape;
+            delete[] this->_strides;
             if (this->_data)
                 ::operator delete[](this->_data, std::align_val_t(kAlignment));
 
             this->_ndim = ndim;
             this->_shape = new uint64_t[ndim];
+            this->_strides = new uint64_t[ndim];
 
             std::copy(shape, shape + ndim, this->_shape);
+
+            if (ndim > 0) {
+                this->_strides[ndim - 1] = 1;
+                for (int64_t i = ndim - 2; i >= 0; --i) {
+                    this->_strides[i] = this->_strides[i + 1] * this->_shape[i + 1];
+                }
+            }
+
             this->_data = static_cast<T *>(::operator new[](this->N() * sizeof(T), std::align_val_t(kAlignment)));
         }
     };
@@ -342,9 +347,14 @@ namespace cppmatrix {
     bool operator==(const NDArray<T1> &left, const NDArray<T2> &right) {
         if (!left.check_sizes(right))
             return false;
-        for (uint64_t i = 0; i < left.N(); i++)
-            if (std::abs(left._data[i] - T1(right._data[i])) > std::numeric_limits<T1>::epsilon())
+
+        const T1 epsilon = std::numeric_limits<T1>::epsilon();
+        const uint64_t n = left.N();
+
+        for (uint64_t i = 0; i < n; i++) {
+            if (std::abs(left._data[i] - T1(right._data[i])) > epsilon)
                 return false;
+        }
         return true;
     }
 
@@ -356,6 +366,3 @@ namespace cppmatrix {
 }
 
 #endif
-
-
-

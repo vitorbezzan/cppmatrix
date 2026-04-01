@@ -45,3 +45,19 @@ computations. For other types, it falls back to efficient C++ implementations.
 
 OpenMP is required and enabled by default. Ensure your toolchain provides OpenMP support. On macOS with Homebrew LLVM,
 install `libomp` and configure via `brew install libomp`; CMake already links `OpenMP::OpenMP_CXX`.
+
+## Testing
+
+The project uses GoogleTest with a single test runner (`tests.cpp`) that includes all files in `tests/`.
+
+- Run tests with `ctest --test-dir build --output-on-failure`.
+- Or run the binary directly with `./build/run_tests`.
+
+Current suites cover:
+
+- Core linear algebra (`tests/matrix.cpp`, `tests/ndarray.cpp`, `tests/dot.cpp`)
+- Numerical algorithms (`tests/integration.cpp`, `tests/newton.cpp`)
+- Batch operations and error paths (`tests/batch_operations.cpp`)
+
+Recent additions focus on shape-mismatch behavior, division-by-zero guards, multi-start solver behavior, and zero-width integration intervals.
+

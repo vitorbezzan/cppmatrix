@@ -127,7 +127,6 @@ namespace cppmatrix {
             return Matrix<T>(*this) *= right;
         }
 
-        // Operators: division from the right
         template<typename T2>
             requires std::is_floating_point_v<T2>
         Matrix<T> &operator/=(const T2 &right) {

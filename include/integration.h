@@ -1,89 +1,144 @@
 /**
  * @file integration.h
- * @brief Provides numerical integration algorithms for mathematical functions.
- * 
- * This module implements various numerical integration methods and provides:
- * - Base class for 1D integration algorithms
- * - Trapezoidal rule integration
- * - Simpson's rule integration
- * - Support for arbitrary precision types
- * - Configurable integration intervals and steps
+ * @brief Numerical quadrature for scalar functions (RealFunction).
+ *
+ * Mirrors the style of newton.h: algorithms are class templates constrained with
+ * IsRealFunction, hold a copy of the functor like Newton/Polyak hold `F _f`, and expose
+ * `run()` with no std::function parameter. Use RealFunction<float/double> types from
+ * function.h (or subclasses) as F.
+ *
+ * Provides:
+ * - Base1DIntegrator<P> — interval [lb, ub] and subinterval count n()
+ * - Riemann1DIntegrator<F> — left-endpoint (rectangle) rule
+ * - Trapezoidal1DIntegrator<F> — composite trapezoidal rule
+ * - Simpson1DIntegrator<F> — composite Simpson rule (one panel per subinterval)
  */
 
 #ifndef INTEGRATION_H
 #define INTEGRATION_H
 
-#include <functional>
+#include "function.h"
+#include <cstdint>
+#ifdef CPPMATRIX_USE_OPENMP
+#include <omp.h>
+#endif
 
 namespace cppmatrix {
-    template<typename P = float, typename I = float>
+    /**
+     * @brief Common state for 1D quadrature on [lb, ub].
+     * @tparam P Scalar type for bounds and partial sums (matches PrecisionT<F> for RealFunction).
+     */
+    template<typename P>
     class Base1DIntegrator {
     public:
-        Base1DIntegrator(const P &lb, const P &ub, const uint64_t &n) {
-            this->_lb = lb;
-            this->_ub = ub;
-            this->_n = n;
+        Base1DIntegrator(const P &lb, const P &ub, const uint64_t &n) : _lb(lb), _ub(ub), _n(n) {
         }
 
         virtual ~Base1DIntegrator() = default;
 
-        [[nodiscard]] uint64_t n() const { return this->_n; }
-        [[nodiscard]] P lb() const { return this->_lb; }
-        [[nodiscard]] P ub() const { return this->_ub; }
+        [[nodiscard]] uint64_t n() const { return _n; }
+        [[nodiscard]] P lb() const { return _lb; }
+        [[nodiscard]] P ub() const { return _ub; }
 
-        virtual P run(const std::function<P(const I &)> &f) {
-            P result = 0;
-            P step = (this->_ub - this->_lb) / this->_n;
-
-            for (uint64_t i = 0; i < this->_n; i++) {
-                result += f(this->_lb + i * step);
-            }
-
-            return result * step;
-        }
-
-    private:
+    protected:
         P _lb;
         P _ub;
         uint64_t _n;
     };
 
-    template<typename P = float, typename I = float>
-    class Trapezoidal1DIntegrator final : public Base1DIntegrator<P, I> {
+    /**
+     * @brief Left-endpoint Riemann (rectangle) sum over n equal subintervals.
+     * @tparam F Type satisfying IsRealFunction (e.g. RealFunction<float> subclass).
+     */
+    template<IsRealFunction F>
+    class Riemann1DIntegrator final : public Base1DIntegrator<PrecisionT<F>> {
     public:
-        Trapezoidal1DIntegrator(const P &lb, const P &ub, const uint64_t &n) : Base1DIntegrator<P, I>(lb, ub, n) {
+        Riemann1DIntegrator(const F &f, const PrecisionT<F> &lb, const PrecisionT<F> &ub, const uint64_t &n)
+            : Base1DIntegrator<PrecisionT<F>>(lb, ub, n), _f(f) {
         }
 
-        P run(const std::function<P(const I &)> &f) override {
-            P result = 0;
-            P step = (this->ub() - this->lb()) / this->n();
+        /**
+         * @return Approximate integral of _f over [lb, ub].
+         */
+        PrecisionT<F> run() {
+            using P = PrecisionT<F>;
+            P result = P(0);
+            const P step = (this->ub() - this->lb()) / static_cast<P>(this->n());
 
-            for (uint64_t i = 0; i < this->n(); i++) {
-                auto a_n = (this->lb() + step * i);
-                result += f(a_n) + f(a_n + step);
-            }
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+            for (uint64_t i = 0; i < this->n(); i++)
+                result += _f(this->lb() + static_cast<P>(i) * step);
 
-            return result * (step / 2);
+            return result * step;
         }
+
+    private:
+        F _f;
     };
 
-    template<typename P = float, typename I = float>
-    class Simpson1DIntegrator final : public Base1DIntegrator<P, I> {
+    /**
+     * @brief Composite trapezoidal rule with n subintervals.
+     * @tparam F Type satisfying IsRealFunction.
+     */
+    template<IsRealFunction F>
+    class Trapezoidal1DIntegrator final : public Base1DIntegrator<PrecisionT<F>> {
     public:
-        Simpson1DIntegrator(const P &lb, const P &ub, const uint64_t &n) : Base1DIntegrator<P, I>(lb, ub, n) {
+        Trapezoidal1DIntegrator(const F &f, const PrecisionT<F> &lb, const PrecisionT<F> &ub, const uint64_t &n)
+            : Base1DIntegrator<PrecisionT<F>>(lb, ub, n), _f(f) {
         }
 
-        P run(const std::function<P(const I &)> &f) override {
-            P result = 0;
-            P step = (this->ub() - this->lb()) / this->n();
+        PrecisionT<F> run() {
+            using P = PrecisionT<F>;
+            P result = P(0);
+            const P step = (this->ub() - this->lb()) / static_cast<P>(this->n());
 
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
             for (uint64_t i = 0; i < this->n(); i++) {
-                auto a_n = (this->lb() + step * i);
-                result += f(a_n) + 4 * f(a_n + step / 2) + f(a_n + step);
+                const P a_n = this->lb() + step * static_cast<P>(i);
+                result += _f(a_n) + _f(a_n + step);
             }
 
-            return result * (step / 6);
+            return result * (step / P(2));
         }
+
+    private:
+        F _f;
+    };
+
+    /**
+     * @brief Composite Simpson rule (one Simpson panel per subinterval).
+     * @tparam F Type satisfying IsRealFunction.
+     */
+    template<IsRealFunction F>
+    class Simpson1DIntegrator final : public Base1DIntegrator<PrecisionT<F>> {
+    public:
+        Simpson1DIntegrator(const F &f, const PrecisionT<F> &lb, const PrecisionT<F> &ub, const uint64_t &n)
+            : Base1DIntegrator<PrecisionT<F>>(lb, ub, n), _f(f) {
+        }
+
+        PrecisionT<F> run() {
+            using P = PrecisionT<F>;
+            P result = P(0);
+            const P step = (this->ub() - this->lb()) / static_cast<P>(this->n());
+            const P half = step / P(2);
+
+#ifdef CPPMATRIX_USE_OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+            for (uint64_t i = 0; i < this->n(); i++) {
+                const P a_n = this->lb() + step * static_cast<P>(i);
+                result += _f(a_n) + P(4) * _f(a_n + half) + _f(a_n + step);
+            }
+
+            return result * (step / P(6));
+        }
+
+    private:
+        F _f;
     };
 }
 

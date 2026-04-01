@@ -16,6 +16,10 @@
 
 using namespace cppmatrix;
 
+namespace {
+    constexpr double kMatmulAbsTol = 1e-8;
+}
+
 TEST(Matrix, base_constructor) {
     uint64_t rows = 2;
     uint64_t cols = 2;
@@ -174,7 +178,7 @@ TEST(Matrix, matrix_multiply) {
 
     for (uint64_t i = 0; i < result_cblas.rows(); i++)
         for (uint64_t j = 0; j < result_cblas.cols(); j++)
-            EXPECT_FLOAT_EQ(result_naive(i, j), result_cblas(i, j));
+            EXPECT_NEAR(result_naive(i, j), result_cblas(i, j), kMatmulAbsTol);
 }
 
 TEST(Vector, matrix_column_vector) {
@@ -187,7 +191,7 @@ TEST(Vector, matrix_column_vector) {
     auto naive = multiply_naive(M, convert);
 
     for (int n = 0; n < static_cast<int>(result.N()); n++)
-        EXPECT_FLOAT_EQ(result(n), naive(n, 0));
+        EXPECT_NEAR(result(n), naive(n, 0), kMatmulAbsTol);
 }
 
 TEST(Vector, column_to_row_transpose) {
@@ -276,7 +280,6 @@ TEST(Matrix, transpose_double_transpose_identity) {
 }
 
 TEST(Matrix, transpose_edge_cases) {
-    // 1xN
     auto row = Matrix<float>(1, 5, _fill_row);
     auto row_t = row.transpose();
     EXPECT_EQ(row_t.rows(), 5);
@@ -284,7 +287,6 @@ TEST(Matrix, transpose_edge_cases) {
     for (uint64_t j = 0; j < 5; ++j)
         EXPECT_EQ(row(0, j), row_t(j, 0));
 
-    // Nx1
     auto col = Matrix<float>(4, 1, _fill_col);
     auto col_t = col.transpose();
     EXPECT_EQ(col_t.rows(), 1);
@@ -292,10 +294,39 @@ TEST(Matrix, transpose_edge_cases) {
     for (uint64_t i = 0; i < 4; ++i)
         EXPECT_EQ(col(i, 0), col_t(0, i));
 
-    // 1x1
     auto single = Matrix<float>(1, 1, 3.14f);
     auto single_t = single.transpose();
     EXPECT_EQ(single_t.rows(), 1);
     EXPECT_EQ(single_t.cols(), 1);
     EXPECT_FLOAT_EQ(single(0, 0), single_t(0, 0));
 }
+
+TEST(Matrix, add_size_mismatch_throws) {
+    auto left = Matrix<double>(2, 3, 1.0);
+    auto right = Matrix<double>(3, 2, 2.0);
+    EXPECT_THROW(left += right, std::runtime_error);
+}
+
+TEST(Matrix, subtract_size_mismatch_throws) {
+    auto left = Matrix<double>(2, 3, 1.0);
+    auto right = Matrix<double>(3, 2, 2.0);
+    EXPECT_THROW(left -= right, std::runtime_error);
+}
+
+TEST(Matrix, multiply_shape_mismatch_throws) {
+    auto left = Matrix<double>(2, 3, 1.0);
+    auto right = Matrix<double>(4, 2, 2.0);
+    EXPECT_THROW((void) (left * right), std::runtime_error);
+}
+
+TEST(Matrix, divide_by_zero_throws) {
+    auto left = Matrix<double>(2, 2, 1.0);
+    EXPECT_THROW(left /= 0.0, std::runtime_error);
+}
+
+TEST(Vector, constructor_rejects_wrong_shape_matrix) {
+    auto matrix_2x2 = Matrix<double>(2, 2, 1.0);
+    EXPECT_THROW((void) RowVector<double>(matrix_2x2), std::runtime_error);
+    EXPECT_THROW((void) ColumnVector<double>(matrix_2x2), std::runtime_error);
+}
+
