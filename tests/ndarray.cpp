@@ -1,7 +1,7 @@
 /**
  * @file ndarray.cpp
  * @brief Tests for N-dimensional array operations
- * 
+ *
  * This file contains unit tests that verify:
  * - NDArray constructors and basic operations
  * - Type handling (float and double precision)
@@ -13,6 +13,7 @@
 
 #include "../include/cppmatrix.h"
 #include <gtest/gtest.h>
+#include <limits>
 
 using namespace cppmatrix;
 
@@ -260,5 +261,28 @@ TEST(NDArray, divide_by_zero_throws) {
     double value = 1.0;
     auto A = NDArray<double>({2, 2, 2}, value);
     EXPECT_THROW(A /= 0.0, std::runtime_error);
+}
+
+TEST(NDArraySecurity, indexing_rank_mismatch_throws_even_unchecked) {
+    double value = 1.0;
+    auto A = NDArray<double>({2, 2, 2}, value);
+
+    uint64_t short_index[] = {0, 0};
+    EXPECT_THROW((void)A(short_index), std::out_of_range);
+}
+
+TEST(NDArraySecurity, at_bounds_check_throws) {
+    double value = 1.0;
+    auto A = NDArray<double>({2, 2, 2}, value);
+
+    uint64_t bad_index[] = {0, 0, 2};
+    EXPECT_THROW((void)A.at(bad_index), std::out_of_range);
+}
+
+TEST(NDArraySecurity, shape_overflow_throws) {
+    // Force element-count overflow in size_t multiplication or exceed CPPMATRIX_MAX_BYTES cap.
+    // Using max/2 ensures multiplication overflows or produces a huge byte count.
+    uint64_t big = static_cast<uint64_t>((std::numeric_limits<std::size_t>::max)() / 2);
+    EXPECT_THROW((void)NDArray<double>({big, big}), std::exception);
 }
 

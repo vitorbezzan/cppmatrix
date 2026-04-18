@@ -24,9 +24,23 @@ is designed with template metaprogramming for type safety and BLAS integration f
 
 ## Requirements
 
-- C++20 or later
+- C++23 (project is configured for GNU++23 in `CMakeLists.txt`)
 - BLAS library (for optimized operations)
 - C++ compiler with template metaprogramming support
+
+## Safety and hardening (untrusted inputs)
+
+`cppmatrix` is performance-oriented by default, but `NDArray` has additional hardening to prevent common UB and overflow issues when **shapes/indices come from untrusted sources**.
+
+- **Allocation caps and overflow checks** (in `NDArray::_allocate`):
+  - `CPPMATRIX_MAX_NDIM` (default `16`)
+  - `CPPMATRIX_MAX_BYTES` (default `1 GiB`)
+- **Indexing**:
+  - `NDArray::operator()` supports `std::span<const uint64_t>` and the legacy fixed-array overloads forward to it.
+  - `NDArray::at(...)` is the **checked accessor** (throws `std::out_of_range` on rank/bounds errors).
+  - Even with checks disabled, rank mismatch (index shorter than `ndim`) throws to avoid UB.
+- **Optional bounds checks**:
+  - Define `CPPMATRIX_ENABLE_BOUNDS_CHECKS=1` to make `operator()` validate full bounds as well (useful for fuzzing/debugging).
 
 ## Key Components
 
@@ -59,5 +73,11 @@ Current suites cover:
 - Numerical algorithms (`tests/integration.cpp`, `tests/newton.cpp`)
 - Batch operations and error paths (`tests/batch_operations.cpp`)
 
-Recent additions focus on shape-mismatch behavior, division-by-zero guards, multi-start solver behavior, and zero-width integration intervals.
+Recent additions focus on:
+
+- Batch `add`/`subtract`/`multiply_vector`/`transform` behavior and mismatch paths
+- Transpose stress around 32x32 block boundaries
+- Mixed-precision matrix/vector arithmetic checks
+- Newton/Polyak failure-mode behavior (zero derivative / flat gradient / non-convergence)
+- Deterministic BLAS-vs-naive parity for both `float` and `double`
 

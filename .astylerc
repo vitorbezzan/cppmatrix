@@ -1,0 +1,10 @@
+--style=attach
+--indent=spaces=4
+--indent-switches
+--indent-namespaces
+--pad-oper
+--pad-comma
+--align-pointer=type
+--align-reference=type
+--keep-one-line-statements
+--keep-one-line-blocks

@@ -1,7 +1,7 @@
 /**
  * @file vector.h
  * @brief Provides unified vector operations and types.
- * 
+ *
  * This module provides:
  * - A unified Vector type that can represent both row and column vectors
  * - Mixed-type operations between row and column vectors
@@ -32,7 +32,7 @@ namespace cppmatrix {
 
 #ifdef CPPMATRIX_USE_OPENMP
         if (n >= VECTOR_PARALLEL_THRESHOLD) {
-#pragma omp parallel for
+            #pragma omp parallel for
             for (uint64_t i = 0; i < n; ++i)
                 result(i) = this->operator()(i);
         } else
@@ -50,7 +50,7 @@ namespace cppmatrix {
 
 #ifdef CPPMATRIX_USE_OPENMP
         if (n >= VECTOR_PARALLEL_THRESHOLD) {
-#pragma omp parallel for
+            #pragma omp parallel for
             for (uint64_t i = 0; i < n; ++i)
                 result(i) = this->operator()(i);
         } else
@@ -62,22 +62,22 @@ namespace cppmatrix {
     }
 
     template<typename T>
-    RowVector<T> transpose(const ColumnVector<T> &v) {
+    RowVector<T> transpose(const ColumnVector<T>& v) {
         return v.transpose();
     }
 
     template<typename T>
-    ColumnVector<T> transpose(const RowVector<T> &v) {
+    ColumnVector<T> transpose(const RowVector<T>& v) {
         return v.transpose();
     }
 
     template<typename T1, typename T2>
-    T1 dot(const RowVector<T1> &left, const ColumnVector<T2> &right) {
+    T1 dot(const RowVector<T1>& left, const ColumnVector<T2>& right) {
         if (left.N() == right.N())
 #ifdef CPPMATRIX_USE_OPENMP
         {
             T1 sum = 0;
-#pragma omp parallel for reduction(+:sum)
+            #pragma omp parallel for reduction(+:sum)
             for (uint64_t i = 0; i < left.N(); ++i)
                 sum += left(i) * right(i);
             return sum;
@@ -90,7 +90,7 @@ namespace cppmatrix {
     }
 
     template<>
-    inline float dot(const RowVector<float> &left, const ColumnVector<float> &right) {
+    inline float dot(const RowVector<float>& left, const ColumnVector<float>& right) {
         if (left.N() == right.N())
             return cblas_sdot(left.N(), left.data(), 1, right.data(), 1);
         else
@@ -98,7 +98,7 @@ namespace cppmatrix {
     }
 
     template<>
-    inline double dot(const RowVector<double> &left, const ColumnVector<double> &right) {
+    inline double dot(const RowVector<double>& left, const ColumnVector<double>& right) {
         if (left.N() == right.N())
             return cblas_ddot(left.N(), left.data(), 1, right.data(), 1);
         else

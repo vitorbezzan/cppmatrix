@@ -1,7 +1,7 @@
 /**
  * @file memory_pool.h
  * @brief Thread-local memory pool for small matrix allocations.
- * 
+ *
  * This module provides:
  * - Fast allocation/deallocation for commonly-sized matrices
  * - Thread-local pools to avoid contention
@@ -18,6 +18,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include <stdexcept>
+#include "detail/safe_math.h"
 #ifdef CPPMATRIX_USE_OPENMP
 #include <omp.h>
 #endif
@@ -38,14 +40,14 @@ namespace cppmatrix {
             }
 
             ~FixedSizePool() {
-                for (auto &block: _blocks) {
+                for (auto &block : _blocks) {
                     if (block) {
                         ::operator delete[](block, std::align_val_t(kAlignment));
                     }
                 }
             }
 
-            void *allocate() {
+            void* allocate() {
                 if (_free_list.empty()) {
                     return ::operator new[](kSize, std::align_val_t(kAlignment));
                 }
@@ -54,15 +56,15 @@ namespace cppmatrix {
                 _free_list.pop_back();
 
                 if (!_blocks[idx]) {
-                    _blocks[idx] = static_cast<std::byte *>(
-                        ::operator new[](kSize, std::align_val_t(kAlignment))
-                    );
+                    _blocks[idx] = static_cast<std::byte*>(
+                                       ::operator new[](kSize, std::align_val_t(kAlignment))
+                                   );
                 }
 
                 return _blocks[idx];
             }
 
-            bool deallocate(void *ptr) {
+            bool deallocate(void* ptr) {
                 for (std::size_t i = 0; i < kCount; ++i) {
                     if (_blocks[i] == ptr) {
                         _free_list.push_back(i);
@@ -73,7 +75,7 @@ namespace cppmatrix {
             }
 
         private:
-            std::array<std::byte *, kCount> _blocks{};
+            std::array<std::byte*, kCount> _blocks{};
             std::vector<std::size_t> _free_list;
         };
 
@@ -84,35 +86,43 @@ namespace cppmatrix {
             using Pool4x4 = FixedSizePool<16 * sizeof(float)>;
             using Pool8x8 = FixedSizePool<64 * sizeof(float)>;
 
-            static MatrixMemoryPool &instance() {
+            static MatrixMemoryPool& instance() {
                 thread_local static MatrixMemoryPool pool;
                 return pool;
             }
 
             template<typename T>
-            T *allocate(std::size_t count) {
-                const std::size_t bytes = count * sizeof(T);
-
-                if (bytes <= Pool2x2::kSize) {
-                    return static_cast<T *>(_pool_2x2.allocate());
-                } else if (bytes <= Pool3x3::kSize) {
-                    return static_cast<T *>(_pool_3x3.allocate());
-                } else if (bytes <= Pool4x4::kSize) {
-                    return static_cast<T *>(_pool_4x4.allocate());
-                } else if (bytes <= Pool8x8::kSize) {
-                    return static_cast<T *>(_pool_8x8.allocate());
+            T* allocate(std::size_t count) {
+                std::size_t bytes = 0;
+                if (detail::mul_overflow_size(count, sizeof(T), bytes)) {
+                    throw std::overflow_error("MatrixMemoryPool: byte size overflow");
                 }
 
-                return static_cast<T *>(
-                    ::operator new[](bytes, std::align_val_t(64))
-                );
+                if (bytes <= Pool2x2::kSize) {
+                    return static_cast<T*>(_pool_2x2.allocate());
+                } else if (bytes <= Pool3x3::kSize) {
+                    return static_cast<T*>(_pool_3x3.allocate());
+                } else if (bytes <= Pool4x4::kSize) {
+                    return static_cast<T*>(_pool_4x4.allocate());
+                } else if (bytes <= Pool8x8::kSize) {
+                    return static_cast<T*>(_pool_8x8.allocate());
+                }
+
+                return static_cast<T*>(
+                           ::operator new[](bytes, std::align_val_t(64))
+                       );
             }
 
             template<typename T>
             void deallocate(T *ptr, std::size_t count) {
                 if (!ptr) return;
 
-                const std::size_t bytes = count * sizeof(T);
+                std::size_t bytes = 0;
+                if (detail::mul_overflow_size(count, sizeof(T), bytes)) {
+                    // Can't reliably decide which pool; fall back to aligned delete.
+                    ::operator delete[](ptr, std::align_val_t(64));
+                    return;
+                }
 
                 bool returned = false;
                 if (bytes <= Pool2x2::kSize) {
@@ -142,7 +152,7 @@ namespace cppmatrix {
 
 #ifdef CPPMATRIX_USE_MEMORY_POOL
     template<typename T>
-    T *pool_allocate(std::size_t count) {
+    T* pool_allocate(std::size_t count) {
         return detail::MatrixMemoryPool::instance().allocate<T>(count);
     }
 
@@ -152,10 +162,10 @@ namespace cppmatrix {
     }
 #else
     template<typename T>
-    T *pool_allocate(std::size_t count) {
-        return static_cast<T *>(
-            ::operator new[](count * sizeof(T), std::align_val_t(64))
-        );
+    T* pool_allocate(std::size_t count) {
+        return static_cast<T*>(
+                   ::operator new[](count * sizeof(T), std::align_val_t(64))
+               );
     }
 
     template<typename T>

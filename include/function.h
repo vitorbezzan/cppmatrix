@@ -1,7 +1,7 @@
 /**
  * @file function.h
  * @brief Provides base classes for mathematical function implementations.
- * 
+ *
  * This module provides:
  * - Base class for implementing mathematical functions
  * - Support for real functions (R->R)
@@ -41,13 +41,13 @@ namespace cppmatrix {
          * @warning The result captures `this`. Do not call it after this object is destroyed.
          *          Use copy_callable() when the std::function must outlive a short-lived functor.
          */
-        [[nodiscard]] std::function<O(const I &)> get_function() const {
-            return [this](const I &x) { return (*this)(x); };
+        [[nodiscard]] std::function<O(const I&)> get_function() const {
+            return [this](const I & x) { return (*this)(x); };
         }
     };
 
     template<typename T>
-        requires std::is_floating_point_v<T>
+    requires std::is_floating_point_v<T>
     using RealFunction = BaseFunction<T, T, T, T, T>;
 
     template<class F>
@@ -55,7 +55,7 @@ namespace cppmatrix {
                              std::derived_from<F, RealFunction<double>>;
 
     template<typename T>
-        requires std::is_floating_point_v<T>
+    requires std::is_floating_point_v<T>
     using ScalarField =
         BaseFunction<T, ColumnVector<T>, T, ColumnVector<T>, Matrix<T> >;
 
@@ -64,7 +64,7 @@ namespace cppmatrix {
                             std::derived_from<F, ScalarField<double>>;
 
     template<typename T>
-        requires std::is_floating_point_v<T>
+    requires std::is_floating_point_v<T>
     using VectorField =
         BaseFunction<T, ColumnVector<T>, ColumnVector<T>, Matrix<T>, NDArray<T> >;
 
@@ -89,7 +89,7 @@ namespace cppmatrix {
     struct FunctionTraits;
 
     template<typename F>
-        requires std::derived_from<F, RealFunction<float>>
+    requires std::derived_from<F, RealFunction<float>>
     struct FunctionTraits<F> {
         using precision_type = float;
         using input_type = float;
@@ -99,8 +99,8 @@ namespace cppmatrix {
     };
 
     template<typename F>
-        requires std::derived_from<F, RealFunction<double>> &&
-                 (!std::derived_from<F, RealFunction<float>>)
+    requires std::derived_from<F, RealFunction<double>> &&
+    (!std::derived_from<F, RealFunction<float>>)
     struct FunctionTraits<F> {
         using precision_type = double;
         using input_type = double;
@@ -110,7 +110,7 @@ namespace cppmatrix {
     };
 
     template<typename F>
-        requires std::derived_from<F, ScalarField<float>>
+    requires std::derived_from<F, ScalarField<float>>
     struct FunctionTraits<F> {
         using precision_type = float;
         using input_type = ColumnVector<float>;
@@ -120,8 +120,8 @@ namespace cppmatrix {
     };
 
     template<typename F>
-        requires std::derived_from<F, ScalarField<double>> &&
-                 (!std::derived_from<F, ScalarField<float>>)
+    requires std::derived_from<F, ScalarField<double>> &&
+    (!std::derived_from<F, ScalarField<float>>)
     struct FunctionTraits<F> {
         using precision_type = double;
         using input_type = ColumnVector<double>;
@@ -131,7 +131,7 @@ namespace cppmatrix {
     };
 
     template<typename F>
-        requires std::derived_from<F, VectorField<float>>
+    requires std::derived_from<F, VectorField<float>>
     struct FunctionTraits<F> {
         using precision_type = float;
         using input_type = ColumnVector<float>;
@@ -141,8 +141,8 @@ namespace cppmatrix {
     };
 
     template<typename F>
-        requires std::derived_from<F, VectorField<double>> &&
-                 (!std::derived_from<F, VectorField<float>>)
+    requires std::derived_from<F, VectorField<double>> &&
+    (!std::derived_from<F, VectorField<float>>)
     struct FunctionTraits<F> {
         using precision_type = double;
         using input_type = ColumnVector<double>;
@@ -155,34 +155,34 @@ namespace cppmatrix {
      * @brief Owns a copy of f inside the std::function; safe to store after f goes out of scope.
      */
     template<typename F>
-        requires IsRealFunction<std::remove_cvref_t<F>>
+    requires IsRealFunction<std::remove_cvref_t<F>>
     std::function<typename FunctionTraits<std::remove_cvref_t<F>>::value_type(
-        const typename FunctionTraits<std::remove_cvref_t<F>>::input_type &)>
+        const typename FunctionTraits<std::remove_cvref_t<F>>::input_type&)>
     copy_callable(F &&f) {
         using G = std::remove_cvref_t<F>;
         using Traits = FunctionTraits<G>;
-        return [owned = G(std::forward<F>(f))](const typename Traits::input_type &x)
-                   -> typename Traits::value_type { return owned(x); };
+        return [owned = G(std::forward<F>(f))](const typename Traits::input_type & x)
+               -> typename Traits::value_type { return owned(x); };
     }
 
     template<typename F>
-        requires IsFunction<std::remove_cvref_t<F>>
+    requires IsFunction<std::remove_cvref_t<F>>
     using PrecisionT = typename FunctionTraits<std::remove_cvref_t<F>>::precision_type;
 
     template<typename F>
-        requires IsFunction<std::remove_cvref_t<F>>
+    requires IsFunction<std::remove_cvref_t<F>>
     using InputT = typename FunctionTraits<std::remove_cvref_t<F>>::input_type;
 
     template<typename F>
-        requires IsFunction<std::remove_cvref_t<F>>
+    requires IsFunction<std::remove_cvref_t<F>>
     using ValueT = typename FunctionTraits<std::remove_cvref_t<F>>::value_type;
 
     template<typename F>
-        requires IsFunction<std::remove_cvref_t<F>>
+    requires IsFunction<std::remove_cvref_t<F>>
     using D1ValueT = typename FunctionTraits<std::remove_cvref_t<F>>::d1_type;
 
     template<typename F>
-        requires IsFunction<std::remove_cvref_t<F>>
+    requires IsFunction<std::remove_cvref_t<F>>
     using D2ValueT = typename FunctionTraits<std::remove_cvref_t<F>>::d2_type;
 }
 

@@ -25,6 +25,9 @@ option(CPPMATRIX_USE_ACCELERATE "Prefer Apple Accelerate over OpenBLAS when avai
 option(CPPMATRIX_VECTORIZE_REPORT "Enable clang vectorization diagnostics" OFF)
 option(CPPMATRIX_USE_MEMORY_POOL "Enable thread-local memory pooling for small matrices" ON)
 option(CPPMATRIX_FAST_MATH "Enable -ffast-math for aggressive floating-point optimizations" OFF)
+option(CPPMATRIX_ENABLE_BOUNDS_CHECKS "Enable bounds checks in NDArray indexing" OFF)
+set(CPPMATRIX_MAX_NDIM "16" CACHE STRING "Maximum allowed NDArray ndim (untrusted input hardening)")
+set(CPPMATRIX_MAX_BYTES "1073741824" CACHE STRING "Maximum NDArray allocation bytes cap (untrusted input hardening)")
 
 if(CPPMATRIX_ENABLE_LTO)
     include(CheckIPOSupported)
@@ -131,6 +134,13 @@ endif ()
 add_executable(run_tests tests.cpp)
 target_link_libraries(run_tests GTest::gtest GTest::gtest_main ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} OpenMP::OpenMP_CXX)
 target_compile_definitions(run_tests PRIVATE CPPMATRIX_USE_OPENMP=1)
+
+# Hardening knobs (header-only via compile definitions)
+if(CPPMATRIX_ENABLE_BOUNDS_CHECKS)
+    target_compile_definitions(run_tests PRIVATE CPPMATRIX_ENABLE_BOUNDS_CHECKS=1)
+endif()
+target_compile_definitions(run_tests PRIVATE CPPMATRIX_MAX_NDIM=${CPPMATRIX_MAX_NDIM})
+target_compile_definitions(run_tests PRIVATE CPPMATRIX_MAX_BYTES=${CPPMATRIX_MAX_BYTES})
 
 # Enable memory pooling if requested
 if(CPPMATRIX_USE_MEMORY_POOL)

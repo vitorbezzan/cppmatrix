@@ -1,7 +1,7 @@
 /**
  * @file matrix.cpp
  * @brief Tests for Matrix class operations and functionality
- * 
+ *
  * This file contains unit tests that verify:
  * - Matrix constructors (base, function-based, copy)
  * - Matrix arithmetic operations (+, -, *)
@@ -18,6 +18,15 @@ using namespace cppmatrix;
 
 namespace {
     constexpr double kMatmulAbsTol = 1e-8;
+    constexpr double kMixedAbsTol = 1e-5;
+
+    double fill_blas_case_double(const uint64_t& i, const uint64_t& j) {
+        return static_cast<double>((i + 1) * 3 + (j + 1) * 0.5);
+    }
+
+    float fill_blas_case_float(const uint64_t& i, const uint64_t& j) {
+        return static_cast<float>((i + 1) * 2 + (j + 1) * 0.25F);
+    }
 }
 
 TEST(Matrix, base_constructor) {
@@ -31,24 +40,24 @@ TEST(Matrix, base_constructor) {
             EXPECT_FLOAT_EQ(M(i, j), 10.0);
 }
 
-float _fill(const uint64_t &i, const uint64_t &j) {
+float _fill(const uint64_t& i, const uint64_t& j) {
     return std::sin(i) + std::cos(j);
 }
 
-double _fill_linear_double(const uint64_t &i, const uint64_t &j) {
+double _fill_linear_double(const uint64_t& i, const uint64_t& j) {
     return static_cast<double>(i * 10 + j);
 }
 
-float _fill_linear_float(const uint64_t &i, const uint64_t &j) {
+float _fill_linear_float(const uint64_t& i, const uint64_t& j) {
     return static_cast<float>(i + 2 * j);
 }
 
-float _fill_row(const uint64_t &i, const uint64_t &j) {
+float _fill_row(const uint64_t& i, const uint64_t& j) {
     (void) i;
     return static_cast<float>(j);
 }
 
-float _fill_col(const uint64_t &i, const uint64_t &j) {
+float _fill_col(const uint64_t& i, const uint64_t& j) {
     (void) j;
     return static_cast<float>(i);
 }
@@ -181,6 +190,36 @@ TEST(Matrix, matrix_multiply) {
             EXPECT_NEAR(result_naive(i, j), result_cblas(i, j), kMatmulAbsTol);
 }
 
+TEST(Matrix, matrix_multiply_blas_matches_naive_deterministic_double) {
+    auto left = Matrix<double>(3, 4, fill_blas_case_double);
+    auto right = Matrix<double>(4, 2, std::function<double(const uint64_t&, const uint64_t&)>(
+    [](const uint64_t& i, const uint64_t& j) {
+        return static_cast<double>((i + 2) - (j + 1) * 0.25);
+    }));
+
+    auto naive = multiply_naive(left, right);
+    auto blas = left * right;
+
+    for (uint64_t i = 0; i < blas.rows(); ++i)
+        for (uint64_t j = 0; j < blas.cols(); ++j)
+            EXPECT_NEAR(naive(i, j), blas(i, j), kMatmulAbsTol);
+}
+
+TEST(Matrix, matrix_multiply_blas_matches_naive_deterministic_float) {
+    auto left = Matrix<float>(3, 4, fill_blas_case_float);
+    auto right = Matrix<float>(4, 2, std::function<float(const uint64_t&, const uint64_t&)>(
+    [](const uint64_t& i, const uint64_t& j) {
+        return static_cast<float>((i + 1) * 0.5F + (j + 1));
+    }));
+
+    auto naive = multiply_naive(left, right);
+    auto blas = left * right;
+
+    for (uint64_t i = 0; i < blas.rows(); ++i)
+        for (uint64_t j = 0; j < blas.cols(); ++j)
+            EXPECT_NEAR(naive(i, j), blas(i, j), kMixedAbsTol);
+}
+
 TEST(Vector, matrix_column_vector) {
     auto M = Matrix<double>(8, 10, NormalFill<double>(42, 0.0, 1.0).filler());
     auto v = ColumnVector<double>(10, VNormalFill<double>(42, 0.0, 1.0).filler());
@@ -235,6 +274,16 @@ TEST(Vector, vector_transpose_free_functions) {
 
     for (uint64_t i = 0; i < r.N(); ++i)
         EXPECT_FLOAT_EQ(r(i), v_from_free(i));
+}
+
+TEST(Vector, mixed_precision_dot_matches_naive) {
+    auto left = RowVector<float>({1.0F, 2.0F, 3.0F});
+    auto right = ColumnVector<double>({4.0, 5.0, 6.0});
+
+    const float result = dot(left, right);
+    const float naive = 1.0F * 4.0F + 2.0F * 5.0F + 3.0F * 6.0F;
+
+    EXPECT_NEAR(result, naive, kMixedAbsTol);
 }
 
 TEST(Matrix, transpose_basic) {
@@ -299,6 +348,46 @@ TEST(Matrix, transpose_edge_cases) {
     EXPECT_EQ(single_t.rows(), 1);
     EXPECT_EQ(single_t.cols(), 1);
     EXPECT_FLOAT_EQ(single(0, 0), single_t(0, 0));
+}
+
+TEST(Matrix, transpose_block_boundary_stress) {
+    auto check_boundary_case = [](const uint64_t rows, const uint64_t cols) {
+        auto M = Matrix<double>(rows, cols, std::function<double(const uint64_t&, const uint64_t&)>(
+        [](const uint64_t& i, const uint64_t& j) {
+            return static_cast<double>(i * 1000 + j);
+        }));
+
+        auto Mt = M.transpose();
+        auto Mtt = Mt.transpose();
+
+        EXPECT_EQ(Mt.rows(), cols);
+        EXPECT_EQ(Mt.cols(), rows);
+        EXPECT_TRUE(M == Mtt);
+    };
+
+    check_boundary_case(31, 33);
+    check_boundary_case(32, 32);
+    check_boundary_case(33, 31);
+}
+
+TEST(Matrix, mixed_precision_addition_and_subtraction) {
+    auto left = Matrix<float>(2, 2, std::function<float(const uint64_t&, const uint64_t&)>(
+    [](const uint64_t& i, const uint64_t& j) {
+        return static_cast<float>(i + j + 1);
+    }));
+    auto right = Matrix<double>(2, 2, std::function<double(const uint64_t&, const uint64_t&)>(
+    [](const uint64_t& i, const uint64_t& j) {
+        return static_cast<double>(2 * i + j + 0.5);
+    }));
+
+    auto sum = left + right;
+    auto diff = left - right;
+
+    for (uint64_t i = 0; i < 2; ++i)
+        for (uint64_t j = 0; j < 2; ++j) {
+            EXPECT_NEAR(sum(i, j), left(i, j) + static_cast<float>(right(i, j)), kMixedAbsTol);
+            EXPECT_NEAR(diff(i, j), left(i, j) - static_cast<float>(right(i, j)), kMixedAbsTol);
+        }
 }
 
 TEST(Matrix, add_size_mismatch_throws) {

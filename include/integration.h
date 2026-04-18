@@ -31,7 +31,7 @@ namespace cppmatrix {
     template<typename P>
     class Base1DIntegrator {
     public:
-        Base1DIntegrator(const P &lb, const P &ub, const uint64_t &n) : _lb(lb), _ub(ub), _n(n) {
+        Base1DIntegrator(const P &lb, const P &ub, const uint64_t& n) : _lb(lb), _ub(ub), _n(n) {
         }
 
         virtual ~Base1DIntegrator() = default;
@@ -53,7 +53,7 @@ namespace cppmatrix {
     template<IsRealFunction F>
     class Riemann1DIntegrator final : public Base1DIntegrator<PrecisionT<F>> {
     public:
-        Riemann1DIntegrator(const F &f, const PrecisionT<F> &lb, const PrecisionT<F> &ub, const uint64_t &n)
+        Riemann1DIntegrator(const F &f, const PrecisionT<F>& lb, const PrecisionT<F>& ub, const uint64_t& n)
             : Base1DIntegrator<PrecisionT<F>>(lb, ub, n), _f(f) {
         }
 
@@ -66,7 +66,7 @@ namespace cppmatrix {
             const P step = (this->ub() - this->lb()) / static_cast<P>(this->n());
 
 #ifdef CPPMATRIX_USE_OPENMP
-#pragma omp parallel for reduction(+:result)
+            #pragma omp parallel for reduction(+:result)
 #endif
             for (uint64_t i = 0; i < this->n(); i++)
                 result += _f(this->lb() + static_cast<P>(i) * step);
@@ -85,7 +85,7 @@ namespace cppmatrix {
     template<IsRealFunction F>
     class Trapezoidal1DIntegrator final : public Base1DIntegrator<PrecisionT<F>> {
     public:
-        Trapezoidal1DIntegrator(const F &f, const PrecisionT<F> &lb, const PrecisionT<F> &ub, const uint64_t &n)
+        Trapezoidal1DIntegrator(const F &f, const PrecisionT<F>& lb, const PrecisionT<F>& ub, const uint64_t& n)
             : Base1DIntegrator<PrecisionT<F>>(lb, ub, n), _f(f) {
         }
 
@@ -95,7 +95,7 @@ namespace cppmatrix {
             const P step = (this->ub() - this->lb()) / static_cast<P>(this->n());
 
 #ifdef CPPMATRIX_USE_OPENMP
-#pragma omp parallel for reduction(+:result)
+            #pragma omp parallel for reduction(+:result)
 #endif
             for (uint64_t i = 0; i < this->n(); i++) {
                 const P a_n = this->lb() + step * static_cast<P>(i);
@@ -116,7 +116,7 @@ namespace cppmatrix {
     template<IsRealFunction F>
     class Simpson1DIntegrator final : public Base1DIntegrator<PrecisionT<F>> {
     public:
-        Simpson1DIntegrator(const F &f, const PrecisionT<F> &lb, const PrecisionT<F> &ub, const uint64_t &n)
+        Simpson1DIntegrator(const F &f, const PrecisionT<F>& lb, const PrecisionT<F>& ub, const uint64_t& n)
             : Base1DIntegrator<PrecisionT<F>>(lb, ub, n), _f(f) {
         }
 
@@ -127,7 +127,7 @@ namespace cppmatrix {
             const P half = step / P(2);
 
 #ifdef CPPMATRIX_USE_OPENMP
-#pragma omp parallel for reduction(+:result)
+            #pragma omp parallel for reduction(+:result)
 #endif
             for (uint64_t i = 0; i < this->n(); i++) {
                 const P a_n = this->lb() + step * static_cast<P>(i);

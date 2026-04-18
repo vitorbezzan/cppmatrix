@@ -1,7 +1,7 @@
 /**
  * @file newton.cpp
  * @brief Tests for Newton's method and Polyak optimization
- * 
+ *
  * This file contains unit tests that verify:
  * - Newton's method for root finding in real functions
  * - Polyak optimization for scalar fields
@@ -24,9 +24,9 @@ namespace {
 
 class TestFunction : public RealFunction<float> {
 public:
-    float operator()(const float &x) const override { return x * x - 2.0; }
-    float d1(const float &x) const override { return 2 * x; }
-    float d2(const float &x) const override { return 2.0; }
+    float operator()(const float& x) const override { return x * x - 2.0; }
+    float d1(const float& x) const override { return 2 * x; }
+    float d2(const float& x) const override { return 2.0; }
 };
 
 TEST(newton, test_newton_real_function) {
@@ -38,15 +38,47 @@ TEST(newton, test_newton_real_function) {
 
 class TestScalarField : public ScalarField<float> {
 public:
-    float operator()(const ColumnVector<float> &x) const override {
+    float operator()(const ColumnVector<float>& x) const override {
         return x[0] * x[0] + x[1] * x[1] - 4.0;
     }
 
-    ColumnVector<float> d1(const ColumnVector<float> &x) const override {
+    ColumnVector<float> d1(const ColumnVector<float>& x) const override {
         return ColumnVector<float>({2 * x[0], 2 * x[1]});
     }
 
-    Matrix<float> d2(const ColumnVector<float> &x) const override { return Matrix<float>(); }
+    Matrix<float> d2(const ColumnVector<float>& x) const override { return Matrix<float>(); }
+};
+
+class CubicFunction : public RealFunction<float> {
+public:
+    float operator()(const float& x) const override { return x * x * x; }
+    float d1(const float& x) const override { return 3.0F * x * x; }
+    float d2(const float& x) const override { return 6.0F * x; }
+};
+
+class NoRealRootFunction : public RealFunction<float> {
+public:
+    float operator()(const float& x) const override { return x * x + 1.0F; }
+    float d1(const float& x) const override { return 2.0F * x; }
+    float d2(const float& x) const override { return 2.0F; }
+};
+
+class FlatScalarField : public ScalarField<float> {
+public:
+    float operator()(const ColumnVector<float>& x) const override {
+        (void) x;
+        return 1.0F;
+    }
+
+    ColumnVector<float> d1(const ColumnVector<float>& x) const override {
+        (void) x;
+        return ColumnVector<float>({0.0F, 0.0F});
+    }
+
+    Matrix<float> d2(const ColumnVector<float>& x) const override {
+        (void) x;
+        return Matrix<float>();
+    }
 };
 
 TEST(newton, test_polyak) {
@@ -69,7 +101,7 @@ TEST(newton, parallel_newton_run_multi_and_all) {
 
     EXPECT_EQ(all.size(), starts.size());
     EXPECT_NEAR(std::abs(best), std::sqrt(2.0F), kRootTol);
-    for (float root: all) {
+    for (float root : all) {
         EXPECT_NEAR(f(root), 0.0F, kResidualTol);
     }
 }
@@ -95,3 +127,24 @@ TEST(newton, parallel_polyak_run_multi_and_empty_throw) {
 
     EXPECT_THROW((void) solver.run_multi({}), std::runtime_error);
 }
+
+TEST(newton, zero_derivative_start_can_return_non_finite) {
+    CubicFunction f{};
+    auto root = Newton(f, 1e-6F, 5).run(0.0F);
+    EXPECT_FALSE(std::isfinite(root));
+}
+
+TEST(newton, non_convergent_function_keeps_large_residual) {
+    NoRealRootFunction f{};
+    auto root = Newton(f, 1e-6F, 5).run(0.5F);
+    EXPECT_GT(std::abs(f(root)), 1e-2F);
+}
+
+TEST(newton, flat_gradient_polyak_can_return_non_finite) {
+    FlatScalarField f{};
+    auto x0 = ColumnVector<float>({1.0F, -1.0F});
+    auto root = Polyak(f, 1e-6F, 5).run(x0);
+    EXPECT_FALSE(std::isfinite(root[0]));
+    EXPECT_FALSE(std::isfinite(root[1]));
+}
+

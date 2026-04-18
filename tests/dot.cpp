@@ -1,7 +1,7 @@
 /**
  * @file dot.cpp
  * @brief Tests for dot product and vector norm operations
- * 
+ *
  * This file contains unit tests that verify:
  * - Dot product operations between row and column vectors
  * - L2 norm calculations for vectors
@@ -28,11 +28,11 @@ namespace {
 
         const auto result = dot(left, right);
         const auto result_naive = std::inner_product(left.data(), left.data() + left.N(),
-                                                     right.data(), T(0));
+                                  right.data(), T(0));
 
         const auto l2_norm = norm(left);
         const auto l2_norm_naive = std::sqrt(std::inner_product(
-            left.data(), left.data() + left.N(), left.data(), T(0)));
+                left.data(), left.data() + left.N(), left.data(), T(0)));
 
         ASSERT_NEAR(result, result_naive, abs_tol);
         ASSERT_NEAR(l2_norm, l2_norm_naive, abs_tol);
@@ -52,3 +52,13 @@ TEST(dot, mismatch_throws) {
     auto right = ColumnVector<double>(3, 2.0);
     EXPECT_THROW((void) dot(left, right), std::runtime_error);
 }
+
+TEST(dot, mixed_precision_matches_naive) {
+    auto left = RowVector<float>({1.0F, 2.0F, 3.0F});
+    auto right = ColumnVector<double>({4.0, 5.0, 6.0});
+
+    const float result = dot(left, right);
+    const float naive = std::inner_product(left.data(), left.data() + left.N(), right.data(), 0.0F);
+    EXPECT_NEAR(result, naive, kDotAbsTolFloat);
+}
+

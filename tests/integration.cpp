@@ -19,16 +19,16 @@ namespace {
 
 class Integrand : public RealFunction<float> {
 public:
-    float operator()(const float &x) const override { return std::cos(x); }
-    float d1(const float &x) const override { return -std::sin(x); }
-    float d2(const float &x) const override { return -std::cos(x); }
+    float operator()(const float& x) const override { return std::cos(x); }
+    float d1(const float& x) const override { return -std::sin(x); }
+    float d2(const float& x) const override { return -std::cos(x); }
 };
 
 class IntegrandDouble : public RealFunction<double> {
 public:
-    double operator()(const double &x) const override { return std::cos(x); }
-    double d1(const double &x) const override { return -std::sin(x); }
-    double d2(const double &x) const override { return -std::cos(x); }
+    double operator()(const double& x) const override { return std::cos(x); }
+    double d1(const double& x) const override { return -std::sin(x); }
+    double d2(const double& x) const override { return -std::cos(x); }
 };
 
 TEST(integral, riemann_real_function_float) {

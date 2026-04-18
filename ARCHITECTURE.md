@@ -46,6 +46,7 @@ for (int64_t i = ndim - 2; i >= 0; --i)
 ```
 
 - **Indexing:** `operator()(uint64_t (&index)[ndim])` folds indices with strides into one linear offset.
+- **Indexing safety:** The implementation now supports `operator()(std::span<const uint64_t>)` and the fixed-size array overload forwards to it. A rank mismatch where the provided index has fewer elements than `ndim()` throws `std::out_of_range` to avoid UB. Use `at(...)` for explicit bounds checking.
 - **Aliasing:** The data pointer is declared with a portable **restrict** macro (`CPPMATRIX_RESTRICT`) to help the compiler assume non-aliasing when optimizing loops.
 
 ### 2.2 `Matrix<T>` (`include/matrix.h`)
@@ -189,8 +190,16 @@ Relevant options from `CMakeLists.txt`:
 | **`CPPMATRIX_ENABLE_LTO`** | Enables interprocedural optimization / LTO when supported. |
 | **Extra flags** | `-funroll-loops`, `-fvectorize`, `-fslp-vectorize` to encourage autovectorization and SLP. |
 | **`CPPMATRIX_FAST_MATH`** | Optional `-ffast-math` (relaxes IEEE semantics; use only when acceptable). |
+| **`CPPMATRIX_ENABLE_BOUNDS_CHECKS`** | Enables bounds checks in `NDArray::operator()` (useful in fuzz/debug; off by default). |
 | **BLAS/LAPACK** | Linked into tests; matrix multiply and vector routines depend on a working BLAS. |
 | **Apple `Accelerate`** | Optional path via `CPPMATRIX_USE_ACCELERATE` instead of generic BLAS find. |
+
+### 7.1 Untrusted input hardening knobs
+
+`NDArray` allocation and indexing can be hardened for hostile shapes/indices:
+
+- **`CPPMATRIX_MAX_NDIM`**: Maximum allowed `ndim` (default `16`).
+- **`CPPMATRIX_MAX_BYTES`**: Maximum allocation size in bytes for a single `NDArray` (default `1 GiB`).
 
 ---
 
@@ -214,11 +223,11 @@ Tests are organized by module and compiled into one executable through `tests.cp
 | Suite | Main behavior covered |
 |------|------------------------|
 | `tests/ndarray.cpp` | ND shape/size semantics, arithmetic with mixed precision, scalar ops, and size/zero-division failures. |
-| `tests/matrix.cpp` | Matrix arithmetic, transpose invariants, matrix/vector interop, and shape mismatch guards. |
-| `tests/dot.cpp` | Dot product and norm equivalence vs naive `inner_product`, plus mismatch exceptions. |
+| `tests/matrix.cpp` | Matrix arithmetic, deterministic BLAS-vs-naive parity (`float`/`double`), transpose boundary stress (31/32/33), mixed-precision interop, and shape mismatch guards. |
+| `tests/dot.cpp` | Dot product and norm equivalence vs naive `inner_product`, including mixed-precision and mismatch exceptions. |
 | `tests/integration.cpp` | Riemann/Trapezoidal/Simpson correctness for known integrals and zero-width interval behavior. |
-| `tests/newton.cpp` | Newton and Polyak convergence plus multi-start (`ParallelNewton`/`ParallelPolyak`) branch coverage. |
-| `tests/batch_operations.cpp` | Batch multiply/sum/mean correctness and invalid-input exception paths. |
+| `tests/newton.cpp` | Newton and Polyak convergence, multi-start (`ParallelNewton`/`ParallelPolyak`) branch coverage, and failure-mode behavior (zero derivative, flat gradient, non-convergence). |
+| `tests/batch_operations.cpp` | Batch multiply/sum/mean/add/subtract/transform/multiply_vector correctness and invalid-input exception paths. |
 
 The intent is to keep tests deterministic and compact: each suite favors small fixed matrices/vectors with explicit expected values so regressions are easy to diagnose.
 
