@@ -286,3 +286,45 @@ TEST(NDArraySecurity, shape_overflow_throws) {
     EXPECT_THROW((void)NDArray<double>({big, big}), std::exception);
 }
 
+TEST(NDArray, unary_minus_member_and_free) {
+    double value = 3.0;
+    auto A = NDArray<double>({2, 2}, value);
+    auto neg_member = -A;
+    auto neg_free = operator-(A);
+
+    EXPECT_TRUE(A == -neg_member);
+    EXPECT_TRUE(neg_member == neg_free);
+
+    for (uint64_t i = 0; i < 2; ++i)
+        for (uint64_t j = 0; j < 2; ++j) {
+            uint64_t index[] = {i, j};
+            EXPECT_DOUBLE_EQ(neg_member(index), -3.0);
+        }
+}
+
+TEST(NDArray, scalar_minus_ndarray_const) {
+    double value = 2.0;
+    const auto A = NDArray<double>({2, 2}, value);
+    auto result = 5.0 - A;
+
+    for (uint64_t i = 0; i < 2; ++i)
+        for (uint64_t j = 0; j < 2; ++j) {
+            uint64_t index[] = {i, j};
+            EXPECT_DOUBLE_EQ(result(index), 3.0);
+        }
+}
+
+TEST(NDArray, divide_ndarray_scalar) {
+    double value = 8.0;
+    auto A = NDArray<double>({2, 2}, value);
+    A /= 2.0;
+    auto B = A / 4.0;
+
+    for (uint64_t i = 0; i < 2; ++i)
+        for (uint64_t j = 0; j < 2; ++j) {
+            uint64_t index[] = {i, j};
+            EXPECT_DOUBLE_EQ(A(index), 4.0);
+            EXPECT_DOUBLE_EQ(B(index), 1.0);
+        }
+}
+

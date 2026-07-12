@@ -17,6 +17,7 @@
 #include <vector>
 #include <limits>
 #include <cmath>
+#include <stdexcept>
 #ifdef CPPMATRIX_USE_OPENMP
 #include <omp.h>
 #endif
@@ -25,14 +26,13 @@ namespace cppmatrix {
     template<typename P, typename I>
     class BaseRootFind {
     public:
-        BaseRootFind(const P &precision, const uint64_t& n) {
-            this->_precision = precision;
-            this->_n = n;
-        }
+        BaseRootFind(const P &precision, uint64_t n)
+            : _precision(precision)
+            , _n(n) {}
 
         virtual ~BaseRootFind() = default;
 
-        P precision() { return this->_precision; }
+        [[nodiscard]] P precision() const { return _precision; }
         [[nodiscard]] uint64_t n() const { return this->_n; }
 
         virtual I run(const I &x0) = 0;
@@ -43,27 +43,24 @@ namespace cppmatrix {
     };
 
     template<IsRealFunction F>
-    class Newton final : public BaseRootFind<PrecisionT < F>, InputT<F>>    {
+    class Newton final : public BaseRootFind<PrecisionT<F>, InputT<F>> {
     public:
-        Newton(const F &f, const PrecisionT<F>& precision, const uint64_t& n)
-            : BaseRootFind<PrecisionT < F>, InputT<F>
+        using Precision = PrecisionT<F>;
+        using Input = InputT<F>;
+        using Base = BaseRootFind<Precision, Input>;
 
-              >
-              (precision
-               ,
-               n
-              ) {
-            this->_f = f;
-        }
+        Newton(const F &f, const Precision &precision, uint64_t n)
+            : Base(precision, n)
+            , _f(f) {}
 
-        InputT<F> run(const InputT<F>& x0) override {
-            InputT < F > x = x0;
-            InputT < F > x_new;
+        Input run(const Input &x0) override {
+            Input x = x0;
+            Input x_new;
 
             for (uint64_t N = 0; N < this->n(); N++) {
                 x_new = x - this->_f(x) / this->_f.d1(x);
 
-                if (fabs(x_new - x) <= this->precision())
+                if (std::fabs(x_new - x) <= this->precision())
                     break;
 
                 x = x_new;
@@ -77,22 +74,19 @@ namespace cppmatrix {
     };
 
     template<IsScalarField F>
-    class Polyak final : public BaseRootFind<PrecisionT < F>, InputT<F>>    {
+    class Polyak final : public BaseRootFind<PrecisionT<F>, InputT<F>> {
     public:
-        Polyak(const F &f, const PrecisionT<F>& precision, const uint64_t& n)
-            : BaseRootFind<PrecisionT < F>, InputT<F>
+        using Precision = PrecisionT<F>;
+        using Input = InputT<F>;
+        using Base = BaseRootFind<Precision, Input>;
 
-              >
-              (precision
-               ,
-               n
-              ) {
-            this->_f = f;
-        }
+        Polyak(const F &f, const Precision &precision, uint64_t n)
+            : Base(precision, n)
+            , _f(f) {}
 
-        InputT<F> run(const InputT<F>& x0) override {
-            InputT < F > x(x0);
-            InputT < F > x_new(x0);
+        Input run(const Input &x0) override {
+            Input x(x0);
+            Input x_new(x0);
 
             for (uint64_t N = 0; N < this->n(); N++) {
                 auto d1 = this->_f.d1(x);
@@ -121,18 +115,15 @@ namespace cppmatrix {
      * Returns the best converged result based on function value at convergence.
      */
     template<IsRealFunction F>
-    class ParallelNewton final : public BaseRootFind<PrecisionT < F>, InputT<F>>  {
+    class ParallelNewton final : public BaseRootFind<PrecisionT<F>, InputT<F>> {
     public:
-        ParallelNewton(const F &f, const PrecisionT<F>& precision, const uint64_t& n)
-            : BaseRootFind<PrecisionT < F>, InputT<F>
+        using Precision = PrecisionT<F>;
+        using Input = InputT<F>;
+        using Base = BaseRootFind<Precision, Input>;
 
-              >
-              (precision
-               ,
-               n
-              )
-            ,
-              _f (f) {}
+        ParallelNewton(const F &f, const Precision &precision, uint64_t n)
+            : Base(precision, n)
+            , _f(f) {}
 
         /**
          * @brief Run Newton's method from multiple starting points in parallel
@@ -140,14 +131,14 @@ namespace cppmatrix {
          * @param starting_points Vector of initial guesses
          * @return Best converged root (closest to zero)
          */
-        InputT<F> run_multi(const std::vector<InputT<F> >& starting_points) {
+        Input run_multi(const std::vector<Input>& starting_points) {
             if (starting_points.empty()) {
                 throw std::runtime_error("ParallelNewton: no starting points provided");
             }
 
             const std::size_t n_starts = starting_points.size();
-            std::vector<InputT<F> > results(n_starts);
-            std::vector<PrecisionT<F> > residuals(n_starts);
+            std::vector<Input> results(n_starts);
+            std::vector<Precision> residuals(n_starts);
 
 #ifdef CPPMATRIX_USE_OPENMP
             #pragma omp parallel for
@@ -158,7 +149,7 @@ namespace cppmatrix {
             }
 
             std::size_t best_idx = 0;
-            PrecisionT < F > best_residual = residuals[0];
+            Precision best_residual = residuals[0];
 
             for (std::size_t i = 1; i < n_starts; ++i) {
                 if (residuals[i] < best_residual) {
@@ -176,13 +167,13 @@ namespace cppmatrix {
          * @param starting_points Vector of initial guesses
          * @return Vector of all converged roots
          */
-        std::vector<InputT<F> > run_multi_all(const std::vector<InputT<F> >& starting_points) {
+        std::vector<Input> run_multi_all(const std::vector<Input>& starting_points) {
             if (starting_points.empty()) {
                 throw std::runtime_error("ParallelNewton: no starting points provided");
             }
 
             const std::size_t n_starts = starting_points.size();
-            std::vector<InputT<F> > results(n_starts);
+            std::vector<Input> results(n_starts);
 
 #ifdef CPPMATRIX_USE_OPENMP
             #pragma omp parallel for
@@ -197,14 +188,14 @@ namespace cppmatrix {
         /**
          * @brief Single starting point interface (for compatibility)
          */
-        InputT<F> run(const InputT<F>& x0) override {
-            InputT < F > x = x0;
-            InputT < F > x_new;
+        Input run(const Input &x0) override {
+            Input x = x0;
+            Input x_new;
 
             for (uint64_t N = 0; N < this->n(); N++) {
                 x_new = x - this->_f(x) / this->_f.d1(x);
 
-                if (fabs(x_new - x) <= this->precision())
+                if (std::fabs(x_new - x) <= this->precision())
                     break;
 
                 x = x_new;
@@ -221,18 +212,15 @@ namespace cppmatrix {
      * @brief Parallel multi-start Polyak's method for scalar fields
      */
     template<IsScalarField F>
-    class ParallelPolyak final : public BaseRootFind<PrecisionT < F>, InputT<F>>  {
+    class ParallelPolyak final : public BaseRootFind<PrecisionT<F>, InputT<F>> {
     public:
-        ParallelPolyak(const F &f, const PrecisionT<F>& precision, const uint64_t& n)
-            : BaseRootFind<PrecisionT < F>, InputT<F>
+        using Precision = PrecisionT<F>;
+        using Input = InputT<F>;
+        using Base = BaseRootFind<Precision, Input>;
 
-              >
-              (precision
-               ,
-               n
-              )
-            ,
-              _f (f) {}
+        ParallelPolyak(const F &f, const Precision &precision, uint64_t n)
+            : Base(precision, n)
+            , _f(f) {}
 
         /**
          * @brief Run Polyak's method from multiple starting points in parallel
@@ -240,14 +228,14 @@ namespace cppmatrix {
          * @param starting_points Vector of initial guesses
          * @return Best converged root (closest to zero)
          */
-        InputT<F> run_multi(const std::vector<InputT<F> >& starting_points) {
+        Input run_multi(const std::vector<Input>& starting_points) {
             if (starting_points.empty()) {
                 throw std::runtime_error("ParallelPolyak: no starting points provided");
             }
 
             const std::size_t n_starts = starting_points.size();
-            std::vector<InputT<F> > results(n_starts);
-            std::vector<PrecisionT<F> > residuals(n_starts);
+            std::vector<Input> results(n_starts);
+            std::vector<Precision> residuals(n_starts);
 
 #ifdef CPPMATRIX_USE_OPENMP
             #pragma omp parallel for
@@ -258,7 +246,7 @@ namespace cppmatrix {
             }
 
             std::size_t best_idx = 0;
-            PrecisionT < F > best_residual = residuals[0];
+            Precision best_residual = residuals[0];
 
             for (std::size_t i = 1; i < n_starts; ++i) {
                 if (residuals[i] < best_residual) {
@@ -273,9 +261,9 @@ namespace cppmatrix {
         /**
          * @brief Single starting point interface (for compatibility)
          */
-        InputT<F> run(const InputT<F>& x0) override {
-            InputT < F > x(x0);
-            InputT < F > x_new(x0);
+        Input run(const Input &x0) override {
+            Input x(x0);
+            Input x_new(x0);
 
             for (uint64_t N = 0; N < this->n(); N++) {
                 auto d1 = this->_f.d1(x);

@@ -419,3 +419,64 @@ TEST(Vector, constructor_rejects_wrong_shape_matrix) {
     EXPECT_THROW((void) ColumnVector<double>(matrix_2x2), std::runtime_error);
 }
 
+TEST(Matrix, unary_minus) {
+    auto M = Matrix<double>(2, 2, 4.0);
+    auto neg = -M;
+
+    for (uint64_t i = 0; i < M.rows(); ++i)
+        for (uint64_t j = 0; j < M.cols(); ++j)
+            EXPECT_DOUBLE_EQ(neg(i, j), -4.0);
+}
+
+TEST(Matrix, divide_scalar) {
+    auto M = Matrix<float>(2, 2, 12.0F);
+    M /= 3.0F;
+    auto result = M / 2.0F;
+
+    for (uint64_t i = 0; i < M.rows(); ++i)
+        for (uint64_t j = 0; j < M.cols(); ++j) {
+            EXPECT_FLOAT_EQ(M(i, j), 4.0F);
+            EXPECT_FLOAT_EQ(result(i, j), 2.0F);
+        }
+}
+
+TEST(Vector, column_vector_unary_minus) {
+    auto v = ColumnVector<double>({1.0, -2.0, 3.0});
+    auto neg = -v;
+
+    EXPECT_DOUBLE_EQ(neg(0), -1.0);
+    EXPECT_DOUBLE_EQ(neg(1), 2.0);
+    EXPECT_DOUBLE_EQ(neg(2), -3.0);
+}
+
+TEST(Vector, row_vector_unary_minus) {
+    auto v = RowVector<float>({1.0F, -2.0F, 3.0F});
+    auto neg = -v;
+
+    EXPECT_FLOAT_EQ(neg(0), -1.0F);
+    EXPECT_FLOAT_EQ(neg(1), 2.0F);
+    EXPECT_FLOAT_EQ(neg(2), -3.0F);
+}
+
+TEST(Vector, row_vector_scalar_plus) {
+    auto v = RowVector<float>({1.0F, 2.0F, 3.0F});
+    auto result = 10.0F + v;
+
+    EXPECT_FLOAT_EQ(result(0), 11.0F);
+    EXPECT_FLOAT_EQ(result(1), 12.0F);
+    EXPECT_FLOAT_EQ(result(2), 13.0F);
+}
+
+TEST(Vector, column_vector_divide_scalar) {
+    auto v = ColumnVector<double>({8.0, 12.0, 4.0});
+    v /= 2.0;
+    auto result = v / 4.0;
+
+    EXPECT_DOUBLE_EQ(v(0), 4.0);
+    EXPECT_DOUBLE_EQ(v(1), 6.0);
+    EXPECT_DOUBLE_EQ(v(2), 2.0);
+    EXPECT_DOUBLE_EQ(result(0), 1.0);
+    EXPECT_DOUBLE_EQ(result(1), 1.5);
+    EXPECT_DOUBLE_EQ(result(2), 0.5);
+}
+

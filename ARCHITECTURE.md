@@ -216,6 +216,11 @@ Relevant options from `CMakeLists.txt`:
 
 ---
 
+## 8.1 Formatting and template-heavy headers (contributor note)
+
+The codebase is template-heavy, and the repository formatting rules are enforced via `astyle` (`make format`, `make format-check`).
+To keep formatting stable and readable in headers with long dependent types, prefer local aliases inside templates (e.g. `using Precision = PrecisionT<F>;`, `using Input = InputT<F>;`, `using Base = ...;`) and use member-initializer lists—this avoids brittle multi-line wraps around long base-class template spellings.
+
 ## 9. Test architecture and coverage map
 
 Tests are organized by module and compiled into one executable through `tests.cpp` includes.

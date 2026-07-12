@@ -146,6 +146,12 @@ namespace cppmatrix {
             return result;
         }
 
+        Matrix<T> operator-() const {
+            Matrix<T> result(*this);
+            result *= T(-1);
+            return result;
+        }
+
         template<typename T2>
         bool operator==(const Matrix<T2>& right) const {
             if (this->rows() != right.rows() || this->cols() != right.cols())
@@ -316,6 +322,11 @@ namespace cppmatrix {
     requires std::is_floating_point_v<T1>
     Matrix<T2> operator*(const T1 &left, const Matrix<T2>& right) {
         return right * T2(left);
+    }
+
+    template<typename T>
+    Matrix<T> operator-(const Matrix<T>& value) {
+        return -value;
     }
 
     namespace detail {

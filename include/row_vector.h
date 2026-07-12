@@ -120,6 +120,12 @@ namespace cppmatrix {
             return result;
         }
 
+        RowVector<T> operator-() const {
+            RowVector<T> result(*this);
+            result *= T(-1);
+            return result;
+        }
+
         template<typename T2>
         bool operator==(const RowVector<T2>& right) const {
             if (this->N() != right.N())
@@ -166,7 +172,7 @@ namespace cppmatrix {
     requires std::is_arithmetic_v<T2>
     RowVector<T1>& operator+=(RowVector<T1>& left, const T2 &right) {
         std::transform(left.data(), left.data() + left.N(), left.data(),
-        [right](T2 element) { return element + right; });
+        [right](T1 element) { return element + T1(right); });
         return left;
     }
 
@@ -183,7 +189,7 @@ namespace cppmatrix {
     requires std::is_arithmetic_v<T1>
     RowVector<T2> operator+(const T1 &left, const RowVector<T2>& right) {
         auto result = RowVector(right);
-        operator+=(result, left);
+        operator+=(result, T2(left));
 
         return result;
     }
@@ -238,6 +244,11 @@ namespace cppmatrix {
     requires std::is_arithmetic_v<T1>
     RowVector<T2> operator*(const T1 &left, const RowVector<T2>& right) {
         return right * T2(left);
+    }
+
+    template<typename T>
+    RowVector<T> operator-(const RowVector<T>& value) {
+        return -value;
     }
 
     inline RowVector<float> operator*(const RowVector<float>& left, const Matrix<float>& right) {

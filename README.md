@@ -81,3 +81,12 @@ Recent additions focus on:
 - Newton/Polyak failure-mode behavior (zero derivative / flat gradient / non-convergence)
 - Deterministic BLAS-vs-naive parity for both `float` and `double`
 
+## Formatting
+
+The project uses **Artistic Style** (`astyle`) for C/C++ formatting, configured in `.astylerc` and driven via `Makefile`.
+
+- **Format all tracked sources/headers**: `make format`
+- **Check formatting (CI-friendly)**: `make format-check`
+
+Both targets format only **tracked** C/C++ files (`git ls-files`) and apply the same options, so local runs and CI stay consistent.
+

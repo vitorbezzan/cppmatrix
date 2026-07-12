@@ -6,12 +6,12 @@
 #include <limits>
 
 namespace cppmatrix::detail {
-    [[nodiscard]] inline bool add_overflow_u64(uint64_t a, uint64_t b, uint64_t &out) {
+    [[nodiscard]] inline bool add_overflow_u64(uint64_t a, uint64_t b, uint64_t& out) {
         out = a + b;
         return out < a;
     }
 
-    [[nodiscard]] inline bool mul_overflow_u64(uint64_t a, uint64_t b, uint64_t &out) {
+    [[nodiscard]] inline bool mul_overflow_u64(uint64_t a, uint64_t b, uint64_t& out) {
         if (a == 0 || b == 0) {
             out = 0;
             return false;
@@ -21,7 +21,7 @@ namespace cppmatrix::detail {
         return false;
     }
 
-    [[nodiscard]] inline bool mul_overflow_size(std::size_t a, std::size_t b, std::size_t &out) {
+    [[nodiscard]] inline bool mul_overflow_size(std::size_t a, std::size_t b, std::size_t& out) {
         if (a == 0 || b == 0) {
             out = 0;
             return false;

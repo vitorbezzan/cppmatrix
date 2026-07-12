@@ -239,6 +239,10 @@ namespace cppmatrix {
             return result;
         }
 
+        NDArray<T> operator-() const {
+            return *this * T(-1);
+        }
+
         [[nodiscard]] virtual uint64_t N() const {
             uint64_t n = std::accumulate(this->_shape, this->_shape + this->_ndim, 1,
                                          std::multiplies());
@@ -377,7 +381,7 @@ namespace cppmatrix {
         #pragma omp parallel for simd
 #endif
         for (uint64_t idx = 0; idx < left.N(); ++idx)
-            left._data[idx] = std::plus<T1>()(left._data[idx], T1(right));
+            left.data()[idx] = std::plus<T1>()(left.data()[idx], T1(right));
         return left;
     }
 
@@ -425,7 +429,7 @@ namespace cppmatrix {
         #pragma omp parallel for simd
 #endif
         for (uint64_t idx = 0; idx < left.N(); ++idx)
-            left._data[idx] = std::minus<T1>()(left._data[idx], T1(right));
+            left.data()[idx] = std::minus<T1>()(left.data()[idx], T1(right));
         return left;
     }
 
@@ -438,11 +442,16 @@ namespace cppmatrix {
     }
 
     template<typename T1, typename T2>
-    NDArray<T2> operator-(const T1 &left, NDArray<T2>& right) {
+    NDArray<T2> operator-(const T1 &left, const NDArray<T2>& right) {
         auto result = NDArray(right) * T2(-1.0);
         operator+=(result, left);
 
         return result;
+    }
+
+    template<typename T>
+    NDArray<T> operator-(const NDArray<T>& value) {
+        return -value;
     }
 
     template<typename T1, typename T2>
